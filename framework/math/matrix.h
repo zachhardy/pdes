@@ -1,9 +1,10 @@
 #pragma once
+#include "framework/types.h"
 #include "framework/math/vector.h"
 
 namespace pdes
 {
-  template<typename Number = double>
+  template<typename Number = types::real>
   class Matrix : public NDArray<2, Number>
   {
   public:
@@ -87,14 +88,17 @@ namespace pdes
      * Multiply the Matrix by a Vector, optionally adding the result into
      * the given destination vector.
     */
-    void vmult(const Vector<Number>& vec,
-               Vector<Number>& dst,
+    void vmult(const Vector<Number>& x,
+               Vector<Number>& b,
                bool add = false) const;
     /// Add a matrix-vector product to a destination Vector.
-    void vmult_add(const Vector<Number>& vec,
-                   Vector<Number>& dst) const;
+    void vmult_add(const Vector<Number>& x,
+                   Vector<Number>& b) const;
     /// Returns a matrix-vector product.
-    Vector<Number> vmult(const Vector<Number>& vec) const;
+    Vector<Number> vmult(const Vector<Number>& x) const;
+
+    /// Multiply the Matrix by another Matrix.
+    Matrix mmult(const Matrix& B) const;
 
     /// Prints the Matrix to an output stream
     void print(std::ostream& os = std::cout,
@@ -184,47 +188,55 @@ namespace pdes
 
   template<typename Number>
   void
-  Matrix<Number>::vmult(const Vector<Number>& vec,
-                        Vector<Number>& dst,
+  Matrix<Number>::vmult(const Vector<Number>& x,
+                        Vector<Number>& b,
                         const bool add) const
   {
-    if (vec.size() != this->n())
+    if (x.size() != n())
       throw std::invalid_argument("Matrix-vector(vec) dimension mismatch.");
-    if (dst.size() != this->n())
+    if (b.size() != m())
       throw std::invalid_argument("Matrix-vector(dst) dimension mismatch.");
 
-    for (size_t i = 0; i < this->m(); ++i)
+    for (size_t i = 0; i < m(); ++i)
     {
-      Number val = add ? dst(i) : Number(0);
-      for (size_t j = 0; j < this->n(); ++j)
-        val += this->at(i, j) * Number(vec(j));
-      dst(i) = val;
+      Number val = add ? b(i) : Number(0);
+      for (size_t j = 0; j < n(); ++j)
+        val += this->at(i, j) * Number(x(j));
+      b(i) = val;
     }
   }
 
   template<typename Number>
   void
-  Matrix<Number>::vmult_add(const Vector<Number>& vec,
-                            Vector<Number>& dst) const
+  Matrix<Number>::vmult_add(const Vector<Number>& x,
+                            Vector<Number>& b) const
   {
-    this->vmult(vec, dst, true);
+    vmult(x, b, true);
   }
 
   template<typename Number>
   Vector<Number>
-  Matrix<Number>::vmult(const Vector<Number>& vec) const
+  Matrix<Number>::vmult(const Vector<Number>& x) const
   {
-    Vector dst(this->m(), Number(0));
-    this->vmult(vec, dst);
+    Vector dst(m(), Number(0));
+    vmult(x, dst);
     return dst;
   }
 
-
   template<typename Number>
-  Vector<Number>
-  operator*(const Matrix<Number>& mat, const Vector<Number>& vec)
+  Matrix<Number>
+  Matrix<Number>::mmult(const Matrix& B) const
   {
-    return mat.vmult(vec);
+    if (n() != B.m())
+      throw std::invalid_argument(
+        "Dimension mismatch error for matrix-matrix multiplication.");
+
+    Matrix C(m(), B.n(), Number(0));
+    for (size_t i = 0; i < m(); ++i)
+      for (size_t j = 0; j < B.n(); ++j)
+        for (size_t k = 0; k < n(); ++k)
+          C(i, j) += this->at(i, k) * B(k, j);
+    return C;
   }
 
   template<typename Number>
@@ -242,17 +254,83 @@ namespace pdes
     else
       os.setf(std::ios::fixed, std::ios::floatfield);
 
-    for (size_t i = 0; i < this->m(); ++i)
+    for (size_t i = 0; i < m(); ++i)
     {
       os << (i == 0 ? "[[" : " [");
-      for (size_t j = 0; j < this->n(); ++j)
+      for (size_t j = 0; j < n(); ++j)
         os << this->at(i, j)
-            << (j == this->n() - 1 ? "]" : " ");
-      os << (i == this->m() - 1 ? "]" : "");
+            << (j == n() - 1 ? "]" : " ");
+      os << (i == m() - 1 ? "]" : "");
       os << std::endl;
     }
 
     os.flags(old_flags);
     os.precision(old_precision);
+  }
+
+  /* -------------------- free functions --------------------*/
+
+  template<typename Number>
+  Vector<Number>
+  vmult(const Matrix<Number>& A, const Vector<Number>& x)
+  {
+    return A.vmult(x);
+  }
+
+  template<typename Number>
+  Matrix<Number>
+  mmult(const Matrix<Number>& A, const Matrix<Number>& B)
+  {
+    return A.mmult(B);
+  }
+
+  template<typename Number>
+  Vector<Number>
+  operator*(const Matrix<Number>& A, const Vector<Number>& x)
+  {
+    return A.vmult(x);
+  }
+
+  template<typename Number>
+  Matrix<Number>
+  operator*(const Matrix<Number>& A, Number c)
+  {
+    Matrix mat(A);
+    mat.scale(c);
+    return mat;
+  }
+
+  template<typename Number>
+  Matrix<Number>
+  operator*(Number c, const Matrix<Number>& A)
+  {
+    return A * c;
+  }
+
+  template<typename Number>
+  Matrix<Number>
+  operator-(const Matrix<Number>& A)
+  {
+    Matrix mat(A);
+    mat *= Number(-1);
+    return mat;
+  }
+
+  template<typename Number>
+  Matrix<Number>
+  operator+(const Matrix<Number>& A, const Matrix<Number>& B)
+  {
+    Matrix mat(A);
+    mat += B;
+    return mat;
+  }
+
+  template<typename Number>
+  Matrix<Number>
+  operator-(const Matrix<Number>& A, const Matrix<Number>& B)
+  {
+    Matrix mat(A);
+    mat -= B;
+    return mat;
   }
 }

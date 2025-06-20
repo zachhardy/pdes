@@ -8,7 +8,7 @@
 namespace pdes
 {
   Mesh
-  create_1d_orthomesh(const std::vector<double>& x_coords,
+  create_1d_orthomesh(const std::vector<types::real>& x_coords,
                       const Mesh::CoordinateSystem coord_sys)
   {
     // Initialize the mesh
@@ -16,16 +16,17 @@ namespace pdes
     mesh.set_ortho_attributes(x_coords.size() - 1);
 
     // Create vertices
-    for (int i = 0; i < x_coords.size(); ++i)
+    for (size_t i = 0; i < x_coords.size(); ++i)
     {
       if (i > 0 and x_coords[i] <= x_coords[i - 1])
         throw std::logic_error("The x-coordinates must be in ascending order.");
-      mesh.add_vertex(MeshVector(x_coords.at(i)));
+      mesh.add_vertex(static_cast<types::global_index>(i),
+                      MeshVector(x_coords.at(i)));
     }
 
     // Define mesh objects
     const auto n_cells = x_coords.size() - 1;
-    for (unsigned int c = 0; c < n_cells; ++c)
+    for (types::global_index c = 0; c < n_cells; ++c)
     {
       Cell cell(Cell::Type::SLAB, Cell::Type::SLAB);
       cell.set_local_id(c);
@@ -60,7 +61,7 @@ namespace pdes
   }
 
   Mesh
-  create_1d_orthomesh(const std::vector<double>& region_edges,
+  create_1d_orthomesh(const std::vector<types::real>& region_edges,
                       const std::vector<unsigned int>& cells_per_regions,
                       const std::vector<unsigned int>& block_ids,
                       const Mesh::CoordinateSystem coord_sys)
@@ -71,11 +72,11 @@ namespace pdes
       throw std::logic_error("Incompatible region edges and cell counts.");
 
     // Define the vertices on the mesh
-    std::vector<double> verts;
+    std::vector<types::real> verts;
     for (unsigned int r = 0; r < nr; ++r)
     {
       const auto width = region_edges[r + 1] - region_edges[r];
-      const auto dx = width / static_cast<double>(cells_per_regions[r]);
+      const auto dx = width / static_cast<types::real>(cells_per_regions[r]);
       for (unsigned int c = 0; c < cells_per_regions[r]; ++c)
         verts.emplace_back(region_edges[r] + c * dx);
     }
@@ -94,8 +95,8 @@ namespace pdes
   }
 
   Mesh
-  create_2d_orthomesh(const std::vector<double>& x_coords,
-                      const std::vector<double>& y_coords,
+  create_2d_orthomesh(const std::vector<types::real>& x_coords,
+                      const std::vector<types::real>& y_coords,
                       const Mesh::CoordinateSystem coord_sys)
   {
     Mesh mesh(2, coord_sys);
@@ -103,7 +104,7 @@ namespace pdes
 
     // Create the vertex/cell mappings (i,j) -> k
     // The ordering is per y-level then per x-level
-    unsigned int k = 0;
+    types::global_index k = 0;
     const auto nxv = x_coords.size();
     const auto nyv = y_coords.size();
     std::vector vertex_ij_map(nyv, std::vector<unsigned int>(nxv));
@@ -111,13 +112,14 @@ namespace pdes
       for (unsigned int i = 0; i < nxv; ++i)
       {
         vertex_ij_map[j][i] = k++;
-        mesh.add_vertex(MeshVector(x_coords.at(i), y_coords.at(j)));
+        MeshVector vertex(x_coords.at(i), y_coords.at(j));
+        mesh.add_vertex(vertex_ij_map[j][i], std::move(vertex));
       }
 
     k = 0;
     const auto nxc = nxv - 1;
     const auto nyc = nyv - 1;
-    std::vector cell_ij_map(nyc, std::vector<unsigned int>(nxc));
+    std::vector cell_ij_map(nyc, std::vector<types::global_index>(nxc));
     for (unsigned int j = 0; j < nyc; ++j)
       for (unsigned int i = 0; i < nxc; ++i)
         cell_ij_map[j][i] = k++;
@@ -182,8 +184,8 @@ namespace pdes
   }
 
   Mesh
-  create_2d_orthomesh(const std::vector<double>& x_region_edges,
-                      const std::vector<double>& y_region_edges,
+  create_2d_orthomesh(const std::vector<types::real>& x_region_edges,
+                      const std::vector<types::real>& y_region_edges,
                       const std::vector<unsigned int>& cells_per_x_region,
                       const std::vector<unsigned int>& cells_per_y_region,
                       const std::vector<unsigned int>& block_ids,
@@ -201,21 +203,21 @@ namespace pdes
     if (block_ids.size() != nxr * nyr)
       throw std::logic_error("Incompatible number of regions and block IDs.");
 
-    std::vector<double> x_verts;
+    std::vector<types::real> x_verts;
     for (unsigned int r = 0; r < nxr; ++r)
     {
       const auto width = x_region_edges[r + 1] - x_region_edges[r];
-      const auto dx = width / static_cast<double>(cells_per_x_region[r]);
+      const auto dx = width / static_cast<types::real>(cells_per_x_region[r]);
       for (unsigned int c = 0; c < cells_per_x_region[r]; ++c)
         x_verts.emplace_back(x_region_edges[r] + c * dx);
     }
     x_verts.emplace_back(x_region_edges.back());
 
-    std::vector<double> y_verts;
+    std::vector<types::real> y_verts;
     for (unsigned int r = 0; r < nyr; ++r)
     {
       const auto width = y_region_edges[r + 1] - y_region_edges[r];
-      const auto dy = width / static_cast<double>(cells_per_y_region[r]);
+      const auto dy = width / static_cast<types::real>(cells_per_y_region[r]);
       for (unsigned int c = 0; c < cells_per_y_region[r]; ++c)
         y_verts.emplace_back(y_region_edges[r] + c * dy);
     }
@@ -236,9 +238,9 @@ namespace pdes
   }
 
   Mesh
-  create_3d_orthomesh(const std::vector<double>& x_coords,
-                      const std::vector<double>& y_coords,
-                      const std::vector<double>& z_coords,
+  create_3d_orthomesh(const std::vector<types::real>& x_coords,
+                      const std::vector<types::real>& y_coords,
+                      const std::vector<types::real>& z_coords,
                       const Mesh::CoordinateSystem coord_sys)
   {
     Mesh mesh(3, coord_sys);
@@ -248,23 +250,22 @@ namespace pdes
 
     // Create the vertex and cell mappings (i,j, k) -> l
     // The ordering is per level z, per level y, per level x
-    unsigned int l = 0;
+    types::global_index l = 0;
     const auto nxv = x_coords.size();
     const auto nyv = y_coords.size();
     const auto nzv = z_coords.size();
 
     std::vector vertex_ijk_map(
       nzv, std::vector(
-        nyv, std::vector<unsigned int>(nxv, 0)));
+        nyv, std::vector<types::global_index>(nxv, 0)));
 
     for (unsigned int k = 0; k < nzv; ++k)
       for (unsigned int j = 0; j < nyv; ++j)
         for (unsigned int i = 0; i < nxv; ++i)
         {
           vertex_ijk_map[k][j][i] = l++;
-          mesh.add_vertex(MeshVector(x_coords.at(i),
-                                     y_coords.at(j),
-                                     z_coords.at(k)));
+          MeshVector vertex(x_coords.at(i), y_coords.at(j), z_coords.at(k));
+          mesh.add_vertex(vertex_ijk_map[k][j][i], std::move(vertex));
         }
 
     // Create a mapping for cells from (i,j) -> k
@@ -275,10 +276,9 @@ namespace pdes
 
     std::vector cell_ijk_map(
       nyc, std::vector(
-        nxc, std::vector<unsigned int>(nzc, 0)));
+        nxc, std::vector<types::global_index>(nzc, 0)));
 
     for (unsigned int k = 0; k < nzc; ++k)
-
       for (unsigned int j = 0; j < nyc; ++j)
         for (unsigned int i = 0; i < nxc; ++i)
           cell_ijk_map[k][j][i] = l++;
@@ -427,9 +427,9 @@ namespace pdes
   }
 
   Mesh
-  create_3d_orthomesh(const std::vector<double>& x_region_edges,
-                      const std::vector<double>& y_region_edges,
-                      const std::vector<double>& z_region_edges,
+  create_3d_orthomesh(const std::vector<types::real>& x_region_edges,
+                      const std::vector<types::real>& y_region_edges,
+                      const std::vector<types::real>& z_region_edges,
                       const std::vector<unsigned int>& cells_per_x_region,
                       const std::vector<unsigned int>& cells_per_y_region,
                       const std::vector<unsigned int>& cells_per_z_region,
@@ -452,31 +452,31 @@ namespace pdes
     if (block_ids.size() != nxr * nyr * nzr)
       throw std::logic_error("Incompatible number of regions and block IDs.");
 
-    std::vector<double> x_verts;
+    std::vector<types::real> x_verts;
     for (unsigned int r = 0; r < nxr; ++r)
     {
       const auto width = x_region_edges[r + 1] - x_region_edges[r];
-      const auto dx = width / static_cast<double>(cells_per_x_region[r]);
+      const auto dx = width / static_cast<types::real>(cells_per_x_region[r]);
       for (unsigned int c = 0; c < cells_per_x_region[r]; ++c)
         x_verts.emplace_back(x_region_edges[r] + c * dx);
     }
     x_verts.emplace_back(x_region_edges.back());
 
-    std::vector<double> y_verts;
+    std::vector<types::real> y_verts;
     for (unsigned int r = 0; r < nyr; ++r)
     {
       const auto width = y_region_edges[r + 1] - y_region_edges[r];
-      const auto dy = width / static_cast<double>(cells_per_y_region[r]);
+      const auto dy = width / static_cast<types::real>(cells_per_y_region[r]);
       for (unsigned int c = 0; c < cells_per_y_region[r]; ++c)
         y_verts.emplace_back(y_region_edges[r] + c * dy);
     }
     y_verts.emplace_back(y_region_edges.back());
 
-    std::vector<double> z_verts;
+    std::vector<types::real> z_verts;
     for (unsigned int r = 0; r < nzr; ++r)
     {
       const auto width = z_region_edges[r + 1] - z_region_edges[r];
-      const auto dz = width / static_cast<double>(cells_per_z_region[r]);
+      const auto dz = width / static_cast<types::real>(cells_per_z_region[r]);
       for (unsigned int c = 0; c < cells_per_y_region[r]; ++c)
         y_verts.emplace_back(z_region_edges[r] + c * dz);
     }

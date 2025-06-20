@@ -1,5 +1,6 @@
 #pragma once
 
+#include "framework/types.h"
 #include <array>
 #include <iostream>
 #include <numeric>
@@ -7,13 +8,47 @@
 
 namespace pdes
 {
+  namespace internal
+  {
+    template<size_t rank, typename... Args>
+    constexpr std::array<size_t, rank>
+    to_array(Args... args)
+    {
+      static_assert(sizeof...(Args) == rank,
+                    "Incorrect number of dimensions for NDArray.");
+      return std::array<size_t, rank>{static_cast<size_t>(args)...};
+    }
+
+    template<size_t rank>
+    std::array<size_t, rank>
+    to_array(const std::vector<size_t>& shape)
+    {
+      if (shape.size() != rank)
+        throw std::invalid_argument("Shape size does not match NDArray rank.");
+      std::array<size_t, rank> result;
+      std::copy_n(shape.begin(), rank, result.begin());
+      return result;
+    }
+
+    template<size_t rank>
+    std::array<size_t, rank>
+    to_array(std::initializer_list<size_t> shape)
+    {
+      if (shape.size() != rank)
+        throw std::invalid_argument("Shape size does not match NDArray rank.");
+      std::array<size_t, rank> result;
+      std::copy(shape.begin(), shape.end(), result.begin());
+      return result;
+    }
+  }
+
   /**
    * Implementation of an arbitrary rank array.
    *
-   * @tparam rank The number of rankensions in the NDArray.
+   * @tparam rank The number of dimensions in the NDArray.
    * @tparam Number The underlying datatype of the NDArray data.
    */
-  template<int rank, typename Number = double>
+  template<int rank, typename Number = types::real>
   class NDArray
   {
   public:
@@ -21,16 +56,21 @@ namespace pdes
     NDArray() noexcept;
 
     /// Constructs an NDArray from a shape.
-    template<typename... Index>
-    explicit NDArray(Index... shape) : NDArray({shape...}) {}
-
-    /// Constructs an NDArray from a shape.
+    explicit NDArray(const std::array<size_t, rank>& shape);
+    explicit NDArray(const std::vector<size_t>& shape);
     NDArray(std::initializer_list<size_t> shape);
 
+    template<typename... Index>
+    explicit NDArray(Index... shape);
+
     /// Constructs an NDArray from a shape ad set all entries to @p value.
+    explicit NDArray(const std::array<size_t, rank>& shape, Number value);
+    explicit NDArray(const std::vector<size_t>& shape, Number value);
     explicit NDArray(std::initializer_list<size_t> shape, Number value);
 
     /// Constructs an NDArray from a shape and set the entries with raw data.
+    explicit NDArray(const std::array<size_t, rank>& shape, const Number* ptr);
+    explicit NDArray(const std::vector<size_t>& shape, const Number* ptr);
     explicit NDArray(std::initializer_list<size_t> shape, const Number* ptr);
 
     /// Constructs an NDArray by copying another.
@@ -50,11 +90,12 @@ namespace pdes
     NDArray& operator=(NDArray<rank, OtherNumber>&& other) noexcept;
 
     /// Reshapes an NDArray clearing existing data.
-    template<typename... Index>
-    void reshape(Index... shape) { reshape({shape...}); }
-
-    /// Reshapes an NDArray clearing existing data.
+    void reshape(const std::array<size_t, rank>& shape);
+    void reshape(const std::vector<size_t>& shape);
     void reshape(std::initializer_list<size_t> shape);
+
+    template<typename... Index>
+    void reshape(Index... shape);
 
     /// Sets all entries to the given value.
     void set(Number value);
@@ -112,20 +153,18 @@ namespace pdes
     NDArray& operator/=(Number value);
 
     /// Adds another NDArray.
-    void add(const NDArray<rank, Number>& other);
+    void add(const NDArray& other);
     /// Adds another NDArray scaled by @p b.
-    void add(Number b, const NDArray<rank, Number>& other);
+    void add(Number b, const NDArray& other);
     /// Scales this NDArray by @p a and adds another.
-    void sadd(Number a, const NDArray<rank, Number>& other);
+    void sadd(Number a, const NDArray& other);
     /// Scales this NDArray by @p a and adds another scaled by @p b.
-    void sadd(Number a,
-              Number b,
-              const NDArray<rank, Number>& other);
+    void sadd(Number a, Number b, const NDArray& other);
 
     /// Adds another NDArray.
-    NDArray& operator+=(const NDArray<rank, Number>& other);
+    NDArray& operator+=(const NDArray& other);
     /// Subtracts another NDArray.
-    NDArray& operator-=(const NDArray<rank, Number>& other);
+    NDArray& operator-=(const NDArray& other);
 
   private:
     /// Compute the linear index from a set of indices.
@@ -153,30 +192,60 @@ namespace pdes
   }
 
   template<int rank, typename Number>
-  NDArray<rank, Number>::NDArray(const std::initializer_list<size_t> shape)
+  NDArray<rank, Number>::NDArray(const std::array<size_t, rank>& shape)
     : NDArray()
   {
     reshape(shape);
   }
 
   template<int rank, typename Number>
-  NDArray<rank, Number>::NDArray(const std::initializer_list<size_t> shape,
+  NDArray<rank, Number>::NDArray(const std::vector<size_t>& shape)
+    : NDArray(internal::to_array<rank>(shape)) {}
+
+  template<int rank, typename Number>
+  NDArray<rank, Number>::NDArray(const std::initializer_list<size_t> shape)
+    : NDArray(internal::to_array<rank>(shape)) {}
+
+  template<int rank, typename Number>
+  template<typename... Index>
+  NDArray<rank, Number>::NDArray(Index... shape)
+    : NDArray(internal::to_array<rank>(shape...)) {}
+
+  template<int rank, typename Number>
+  NDArray<rank, Number>::NDArray(const std::array<size_t, rank>& shape,
                                  const Number value)
-    : NDArray()
+    : NDArray(shape)
   {
-    reshape(shape);
     set(value);
   }
 
   template<int rank, typename Number>
+  NDArray<rank, Number>::NDArray(const std::vector<size_t>& shape,
+                                 const Number value)
+    : NDArray(internal::to_array<rank>(shape), value) {}
+
+  template<int rank, typename Number>
   NDArray<rank, Number>::NDArray(const std::initializer_list<size_t> shape,
+                                 const Number value)
+    : NDArray(internal::to_array<rank>(shape), value) {}
+
+  template<int rank, typename Number>
+  NDArray<rank, Number>::NDArray(const std::array<size_t, rank>& shape,
                                  const Number* ptr)
-    : NDArray()
+    : NDArray(shape)
   {
-    reshape(shape);
     std::copy(ptr, ptr + size_, entries_.get());
   }
 
+  template<int rank, typename Number>
+  NDArray<rank, Number>::NDArray(const std::vector<size_t>& shape,
+                                 const Number* ptr)
+    : NDArray(internal::to_array<rank>(shape), ptr) {}
+
+  template<int rank, typename Number>
+  NDArray<rank, Number>::NDArray(const std::initializer_list<size_t> shape,
+                                 const Number* ptr)
+    : NDArray(internal::to_array<rank>(shape), ptr) {}
 
   template<int rank, typename Number>
   template<typename OtherNumber>
@@ -236,28 +305,47 @@ namespace pdes
 
   template<int rank, typename Number>
   void
-  NDArray<rank, Number>::reshape(const std::initializer_list<size_t> shape)
+  NDArray<rank, Number>::reshape(const std::array<size_t, rank>& shape)
   {
-    if (shape.size() != rank)
-      throw std::invalid_argument("Incompatible shape for given rank.");
-
-    // Copy the rankension sizes into the shape array
+    // Copy the dimension sizes into the shape array
     std::copy(shape.begin(), shape.end(), shape_.begin());
 
-    // The size of the NDArray is the product of the size of each rankension
+    // The size of the NDArray is the product of the size of each dimension
     constexpr auto func = std::multiplies<size_t>();
     size_ = std::accumulate(shape_.begin(), shape_.end(), 1, func);
 
-    // The stride is the number of entries to get to the next entry
-    // of the same rankension. The NDArray is ordered from the last
-    // rankension to the first, so the stride of a rankension is the
-    // product of all higher rankensions.
+    // The stride is the number of entries to get to the next entry of the
+    // same dimension. The NDArray is ordered from the last dimension to the
+    // first, so the stride of a dimension is the product of all higher
+    // dimensions.
     strides_[rank - 1] = 1;
     for (int i = rank - 1; i > 0; --i)
       strides_[i - 1] = strides_[i] * shape_[i];
 
     // Resize the data array and set to zero
     entries_ = std::make_unique<Number[]>(size_);
+  }
+
+  template<int rank, typename Number>
+  void
+  NDArray<rank, Number>::reshape(const std::vector<size_t>& shape)
+  {
+    reshape(internal::to_array<rank>(shape));
+  }
+
+  template<int rank, typename Number>
+  void
+  NDArray<rank, Number>::reshape(std::initializer_list<size_t> shape)
+  {
+    reshape(internal::to_array<rank>(shape));
+  }
+
+  template<int rank, typename Number>
+  template<typename... Index>
+  void
+  NDArray<rank, Number>::reshape(Index... shape)
+  {
+    reshape(internal::to_array<rank>({shape...}));
   }
 
   template<int rank, typename Number>
@@ -319,7 +407,7 @@ namespace pdes
     {
       if (idx[i] >= shape_[i])
         throw std::out_of_range("Index " + std::to_string(idx[i])
-                                + " is out of bounds for rankension "
+                                + " is out of bounds for dimension "
                                 + std::to_string(i) + " with size "
                                 + std::to_string(shape_[i]) + ".");
     }
@@ -336,7 +424,7 @@ namespace pdes
     {
       if (idx[i] >= shape_[i])
         throw std::out_of_range("Index " + std::to_string(idx[i])
-                                + " is out of bounds for rankension "
+                                + " is out of bounds for dimension "
                                 + std::to_string(i) + " with size "
                                 + std::to_string(shape_[i]) + ".");
     }
@@ -360,31 +448,6 @@ namespace pdes
   }
 
   template<int rank, typename Number>
-  NDArray<rank, Number>
-  operator*(const NDArray<rank, Number>& ndarray, const Number value)
-  {
-    NDArray result(ndarray);
-    result.scale(value);
-    return result;
-  }
-
-  template<int rank, typename Number>
-  NDArray<rank, Number>
-  operator*(const Number value, const NDArray<rank, Number>& ndarray)
-  {
-    return ndarray * value;
-  }
-
-  template<int rank, typename Number>
-  NDArray<rank, Number>
-  operator-(const NDArray<rank, Number>& ndarray)
-  {
-    NDArray<rank, Number> result(ndarray);
-    result.scale(Number(-1));
-    return result;
-  }
-
-  template<int rank, typename Number>
   NDArray<rank, Number>&
   NDArray<rank, Number>::operator/=(const Number value)
   {
@@ -393,15 +456,6 @@ namespace pdes
 
     this->scale(Number(1 / value));
     return *this;
-  }
-
-  template<int rank, typename Number>
-  NDArray<rank, Number>
-  operator/(const NDArray<rank, Number>& ndarray, const Number value)
-  {
-    NDArray result(ndarray);
-    result.scale(Number(1 / value));
-    return result;
   }
 
   template<int rank, typename Number>
@@ -434,8 +488,7 @@ namespace pdes
                               const NDArray& other)
   {
     if (other.shape_ != this->shape)
-      throw std::invalid_argument(
-        "Incompatible NDArray rank for add operations.");
+      throw std::invalid_argument("Dimension mismatch error.");
 
     auto func = [a, b](Number x, Number y) { return a * x + b * y; };
     std::transform(this->cbegin(),
@@ -454,6 +507,66 @@ namespace pdes
   }
 
   template<int rank, typename Number>
+  NDArray<rank, Number>&
+  NDArray<rank, Number>::operator-=(const NDArray& other)
+  {
+    this->add(Number(-1), other);
+    return *this;
+  }
+
+  template<int rank, typename Number>
+  template<typename... Index>
+  size_t
+  NDArray<rank, Number>::compute_index(Index... indices) const
+  {
+    static_assert(sizeof...(indices) == rank,
+                  "Incorrect number of indices for NDArray rank.");
+    std::array<size_t, rank> idx{static_cast<size_t>(indices)...};
+
+    size_t index = 0;
+    for (int i = 0; i < rank; ++i)
+      index += idx[i] * strides_[i];
+    return index;
+  }
+
+  /* -------------------- free functions --------------------*/
+
+  template<int rank, typename Number>
+  NDArray<rank, Number>
+  operator*(const NDArray<rank, Number>& ndarray, const Number value)
+  {
+    NDArray result(ndarray);
+    result.scale(value);
+    return result;
+  }
+
+  template<int rank, typename Number>
+  NDArray<rank, Number>
+  operator*(const Number value, const NDArray<rank, Number>& ndarray)
+  {
+    return ndarray * value;
+  }
+
+  template<int rank, typename Number>
+  NDArray<rank, Number>
+  operator/(const NDArray<rank, Number>& ndarray, const Number value)
+  {
+    NDArray result(ndarray);
+    result.scale(Number(1 / value));
+    return result;
+  }
+
+  template<int rank, typename Number>
+  NDArray<rank, Number>
+  operator-(const NDArray<rank, Number>& ndarray)
+  {
+    NDArray<rank, Number> result(ndarray);
+    result.scale(Number(-1));
+    return result;
+  }
+
+
+  template<int rank, typename Number>
   NDArray<rank, Number>
   operator+(const NDArray<rank, Number>& ndarray1,
             const NDArray<rank, Number>& ndarray2)
@@ -465,13 +578,6 @@ namespace pdes
     return result;
   }
 
-  template<int rank, typename Number>
-  NDArray<rank, Number>&
-  NDArray<rank, Number>::operator-=(const NDArray& other)
-  {
-    this->add(Number(-1), other);
-    return *this;
-  }
 
   template<int rank, typename Number>
   NDArray<rank, Number>
@@ -481,30 +587,5 @@ namespace pdes
     NDArray result(ndarray1);
     result -= ndarray2;
     return result;
-  }
-
-  template<int rank, typename Number>
-  template<typename... Index>
-  size_t
-  NDArray<rank, Number>::compute_index(Index... indices) const
-  {
-    const auto n = sizeof...(indices);
-    size_t idx[]{static_cast<size_t>(indices)...};
-
-    if (n == 1)
-      return idx[0] * strides_[0];
-    if (n == 2)
-      return idx[0] * strides_[0] + idx[1] + strides_[1];
-    if (n == 3)
-      return idx[0] * strides_[0] + idx[1] * strides_[1]
-             + idx[2] * strides_[2];
-    if (n == 4)
-      return idx[0] * strides_[0] + idx[1] * strides_[1]
-             + idx[2] * strides_[2] + idx[3] * strides_[3];
-
-    size_t index = 0;
-    for (int i = 0; i < rank; ++i)
-      index += idx[i] * strides_[i];
-    return index;
   }
 }

@@ -1,6 +1,8 @@
 #pragma once
+#include "framework/types.h"
 #include "framework/mesh/cell.h"
 #include "framework/mesh/mesh_vector.h"
+#include <map>
 #include <vector>
 
 namespace pdes
@@ -35,23 +37,24 @@ namespace pdes
     bool is_orthogonal() const { return orthogonal_; }
     bool is_extruded() const { return extruded_; }
 
-    void add_vertex(MeshVector<>&& vertex) { vertices_.push_back(vertex); }
-    void add_vertices(std::vector<MeshVector<>>&& vertices);
+    void add_vertex(types::global_index i,
+                    MeshVector<>&& vertex,
+                    bool allow_replace = false);
+    void add_vertices(std::map<types::global_index, MeshVector<>>&& vertices,
+                      bool allow_replace = false);
 
-    MeshVector<>& vertices(const unsigned int i) { return vertices_.at(i); }
-    const MeshVector<>& vertices(unsigned int i) const;
-
-    std::vector<MeshVector<>>& vertices() { return vertices_; }
-    const std::vector<MeshVector<>>& vertices() const { return vertices_; }
-
-    void add_cell(Cell&& cell) { cells_.push_back(cell); }
+    void add_cell(Cell&& cell) { local_cells_.push_back(cell); }
     void add_cells(std::vector<Cell>&& cells);
 
-    Cell& cells(const unsigned int local_id) { return cells_.at(local_id); }
-    const Cell& cells(unsigned int local_id) const;
+    MeshVector<>& vertices(types::global_index i);
+    const MeshVector<>& vertices(types::global_index i) const;
+    std::map<types::global_index, MeshVector<>>& vertices();
+    const std::map<types::global_index, MeshVector<>>& vertices() const;
 
-    std::vector<Cell>& cells() { return cells_; }
-    const std::vector<Cell>& cells() const { return cells_; }
+    Cell& cells(unsigned int local_id);
+    const Cell& cells(unsigned int local_id) const;
+    std::vector<Cell>& cells() { return local_cells_; }
+    const std::vector<Cell>& cells() const { return local_cells_; }
 
   private:
     const unsigned int dim_;
@@ -62,30 +65,7 @@ namespace pdes
 
     bool extruded_ = false;
 
-    std::vector<MeshVector<>> vertices_;
-    std::vector<Cell> cells_;
+    std::vector<Cell> local_cells_;
+    std::map<types::global_index, MeshVector<>> vertices_;
   };
-
-  inline void
-  Mesh::set_ortho_attributes(const unsigned int nx,
-                             const unsigned int ny,
-                             const unsigned int nz)
-  {
-    orthogonal_ = true;
-    ortho_attr_.nx = nx;
-    ortho_attr_.ny = ny;
-    ortho_attr_.nz = nz;
-  }
-
-  inline const MeshVector<>&
-  Mesh::vertices(const unsigned int i) const
-  {
-    return vertices_.at(i);
-  }
-
-  inline const Cell&
-  Mesh::cells(const unsigned int local_id) const
-  {
-    return cells_.at(local_id);
-  }
 }

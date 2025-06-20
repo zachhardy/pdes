@@ -1,4 +1,5 @@
 #pragma once
+#include "framework/types.h"
 #include <array>
 #include <numeric>
 #include <iostream>
@@ -6,7 +7,7 @@
 namespace pdes
 {
   /// Implementation of a mesh vector in arbitrary dimensions.
-  template<typename Number = double>
+  template<typename Number = types::real>
   class MeshVector final
   {
   public:

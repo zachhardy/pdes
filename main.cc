@@ -36,6 +36,6 @@ main()
     x_coords.push_back(i * width / nx);
 
   auto mesh = create_1d_orthomesh(x_coords);
-  for (const auto& vertex: mesh.vertices())
+  for (const auto& [i, vertex]: mesh.vertices())
     vertex.print();
 }
