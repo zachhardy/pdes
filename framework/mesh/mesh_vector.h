@@ -2,7 +2,9 @@
 #include "framework/types.h"
 #include <array>
 #include <numeric>
-#include <iostream>
+#include <string>
+#include <sstream>
+#include <iomanip>
 
 namespace pdes
 {
@@ -14,7 +16,7 @@ namespace pdes
     MeshVector();
     MeshVector(const MeshVector& other);
     MeshVector(MeshVector&& other) noexcept;
-    virtual ~MeshVector() = default;
+    ~MeshVector() = default;
 
     MeshVector& operator=(const MeshVector& other);
     MeshVector& operator=(MeshVector&& other) noexcept;
@@ -69,9 +71,9 @@ namespace pdes
     MeshVector& operator-=(const MeshVector& other);
 
     /// Prints the MeshVector to an output stream.
-    void print(std::ostream& os = std::cout,
-               unsigned int precision = 3,
-               bool scientific = false) const;
+    std::string to_string(unsigned int precision = 3,
+                          bool scientific = false,
+                          bool newline = true) const;
 
   private:
     std::array<Number, 3> coords_;
@@ -142,6 +144,8 @@ namespace pdes
   MeshVector<Number>::MeshVector(Args... coords)
     : MeshVector()
   {
+    static_assert(sizeof...(coords) > 0,
+                  "Number of arguments must be greater than 0.");
     static_assert(sizeof...(coords) <= 3,
                   "Number of arguments must be 3 or fewer.");
     coords_ = {static_cast<Number>(coords)...};
@@ -384,27 +388,29 @@ namespace pdes
   }
 
   template<typename Number>
-  void
-  MeshVector<Number>::print(std::ostream& os,
-                            unsigned int precision,
-                            bool scientific) const
+  std::string
+  MeshVector<Number>::to_string(const unsigned int precision,
+                                const bool scientific,
+                                const bool newline) const
   {
-    const auto old_flags = os.flags();
-    const auto old_precision = os.precision(precision);
-
-    os.precision(precision);
+    std::ostringstream oss;
+    oss << std::setprecision(precision);
     if (scientific)
-      os.setf(std::ios::scientific, std::ios::floatfield);
+      oss << std::scientific;
     else
-      os.setf(std::ios::fixed, std::ios::floatfield);
+      oss << std::fixed;
 
-    os << "[" << coords_[0] << " " << coords_[1] << " " << coords_[2] << "]";
-    os << std::endl;
+    oss << '(' << coords_[0];
+    oss << ", " << coords_[1];
+    if (coords_[2] != 0.0)
+      oss << ", " << coords_[2];
+    oss << ')';
 
-    os.flags(old_flags);
-    os.precision(old_precision);
+    if (newline)
+      oss << '\n';
+
+    return oss.str();
   }
-
 
   template<typename Number>
   MeshVector<Number>
@@ -416,5 +422,16 @@ namespace pdes
     MeshVector result;
     result[d] = Number(1);
     return result;
+  }
+
+  template<typename Number>
+  std::ostream&
+  operator<<(std::ostream& os, const MeshVector<Number>& v)
+  {
+    os << '(' << v(0) << ", " << v(1);
+    if (v(2) != 0.0)
+      os << ", " << v(2);
+    os << ')';
+    return os;
   }
 }

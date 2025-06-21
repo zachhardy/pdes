@@ -10,6 +10,8 @@ namespace pdes
   class Mesh
   {
   public:
+    using VertexMap = std::map<types::global_index, MeshVector<>>;
+
     enum class CoordinateSystem
     {
       CARTESIAN = 0, ///< @f$ x, y, z @f$ coordinates
@@ -24,7 +26,12 @@ namespace pdes
       unsigned int nz = 0; ///< Number of cells in the z-dimension
     };
 
-    Mesh(unsigned int dim, CoordinateSystem coord_sys);
+    Mesh(unsigned int dim, CoordinateSystem coord_sys)
+      : dim_(dim),
+        coord_sys_(coord_sys),
+        orthogonal_(false),
+        extruded_(false)
+    {}
 
     unsigned int dimension() const { return dim_; }
     CoordinateSystem coordinate_system() const { return coord_sys_; }
@@ -37,22 +44,18 @@ namespace pdes
     bool is_orthogonal() const { return orthogonal_; }
     bool is_extruded() const { return extruded_; }
 
-    void add_vertex(types::global_index i,
-                    MeshVector<>&& vertex,
-                    bool allow_replace = false);
-    void add_vertices(std::map<types::global_index, MeshVector<>>&& vertices,
-                      bool allow_replace = false);
+    void add_vertex(types::global_index i, MeshVector<> vertex, bool allow_replace = false);
+    void add_vertices(VertexMap vertices, bool allow_replace = false);
 
-    void add_cell(Cell&& cell) { local_cells_.push_back(cell); }
-    void add_cells(std::vector<Cell>&& cells);
+    void add_cell(Cell cell) { local_cells_.push_back(std::move(cell)); }
+    void add_cells(std::vector<Cell> cells);
 
-    MeshVector<>& vertices(types::global_index i);
-    const MeshVector<>& vertices(types::global_index i) const;
-    std::map<types::global_index, MeshVector<>>& vertices();
-    const std::map<types::global_index, MeshVector<>>& vertices() const;
+    const MeshVector<>& vertices(const types::global_index i) const { return vertices_.at(i); }
+    const std::map<types::global_index, MeshVector<>>& vertices() const { return vertices_; }
 
-    Cell& cells(unsigned int local_id);
-    const Cell& cells(unsigned int local_id) const;
+    Cell& cells(const unsigned int i) { return local_cells_.at(i); }
+    const Cell& cells(const unsigned int local_id) const { return local_cells_.at(local_id); }
+
     std::vector<Cell>& cells() { return local_cells_; }
     const std::vector<Cell>& cells() const { return local_cells_; }
 
@@ -60,12 +63,12 @@ namespace pdes
     const unsigned int dim_;
     const CoordinateSystem coord_sys_;
 
-    bool orthogonal_ = false;
+    bool orthogonal_;
     OrthoAttributes ortho_attr_;
 
-    bool extruded_ = false;
+    bool extruded_;
 
     std::vector<Cell> local_cells_;
-    std::map<types::global_index, MeshVector<>> vertices_;
+    VertexMap vertices_;
   };
 }

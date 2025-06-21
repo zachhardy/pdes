@@ -1,7 +1,10 @@
 #pragma once
-
 #include "framework/types.h"
 #include "framework/math/ndarray.h"
+#include <string>
+#include <sstream>
+#include <iomanip>
+
 
 namespace pdes
 {
@@ -79,11 +82,10 @@ namespace pdes
     /// Returns the dot product with another Vector.
     Number dot(const Vector& other) const;
 
-    /// Prints the Vector to an output stream
-    void print(std::ostream& os = std::cout,
-               unsigned int precision = 3,
-               bool scientific = true,
-               bool across = true) const;
+    /// Write the vector as a string.
+    std::string to_string(unsigned int precision = 3,
+                          bool scientific = false,
+                          bool newline = true) const;
   };
 
   /* -------------------- inline functions --------------------*/
@@ -241,36 +243,30 @@ namespace pdes
   }
 
   template<typename Number>
-  void
-  Vector<Number>::print(std::ostream& os,
-                        const unsigned int precision,
-                        const bool scientific,
-                        const bool across) const
+  std::string
+  Vector<Number>::to_string(const unsigned int precision,
+                            const bool scientific,
+                            const bool newline) const
   {
-    const auto old_flags = os.flags();
-    const auto old_precision = os.precision(precision);
-
-    os.precision(precision);
+    std::ostringstream oss;
+    oss << std::setprecision(precision);
     if (scientific)
-      os.setf(std::ios::scientific, std::ios::floatfield);
+      oss << std::scientific;
     else
-      os.setf(std::ios::fixed, std::ios::floatfield);
+      oss << std::fixed;
 
-    if (across)
-      for (size_t i = 0; i < this->size(); ++i)
-        os << (i == 0 ? "[" : "")
-            << this->at(i)
-            << (i == this->size() - 1 ? "]" : " ");
-    else
-      for (unsigned int i = 0; i < this->size(); ++i)
-        os << (i == 0 ? "[" : "")
-            << this->at(i)
-            << (i == this->size() - 1 ? "]" : "")
-            << std::endl;
-    os << std::endl;
+    oss << "[";
+    for (size_t i = 0; i < this->size(); ++i)
+    {
+      oss << (*this)(i);
+      if (i < this->size() - 1)
+        oss << " ";
+    }
+    oss << "]";
+    if (newline)
+      oss << '\n';
 
-    os.flags(old_flags);
-    os.precision(old_precision);
+    return oss.str();
   }
 
   /* -------------------- free functions --------------------*/
@@ -379,5 +375,12 @@ namespace pdes
     Vector vec(x);
     vec -= y;
     return vec;
+  }
+
+  template<typename Number>
+  std::ostream&
+  operator<<(std::ostream& os, const Vector<Number>& vec)
+  {
+    return os << vec.to_string(3, false, false);
   }
 }

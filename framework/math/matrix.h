@@ -2,6 +2,7 @@
 #include "framework/types.h"
 #include "framework/math/vector.h"
 
+
 namespace pdes
 {
   template<typename Number = types::real>
@@ -100,10 +101,10 @@ namespace pdes
     /// Multiply the Matrix by another Matrix.
     Matrix mmult(const Matrix& B) const;
 
-    /// Prints the Matrix to an output stream
-    void print(std::ostream& os = std::cout,
-               unsigned int precision = 3,
-               bool scientific = true) const;
+    /// Write the matrix as a string.
+    std::string to_string(unsigned int precision = 3,
+                          bool scientific = false,
+                          bool newline = true) const;
   };
 
   /* -------------------- inline functions --------------------*/
@@ -240,32 +241,35 @@ namespace pdes
   }
 
   template<typename Number>
-  void
-  Matrix<Number>::print(std::ostream& os,
-                        const unsigned int precision,
-                        const bool scientific) const
+  std::string
+  Matrix<Number>::to_string(const unsigned int precision,
+                            const bool scientific,
+                            const bool newline) const
   {
-    const auto old_flags = os.flags();
-    const auto old_precision = os.precision(precision);
-
-    os.precision(precision);
+    std::ostringstream oss;
+    oss << std::setprecision(precision);
     if (scientific)
-      os.setf(std::ios::scientific, std::ios::floatfield);
+      oss << std::scientific;
     else
-      os.setf(std::ios::fixed, std::ios::floatfield);
+      oss << std::fixed;
 
+    oss << "[";
     for (size_t i = 0; i < m(); ++i)
     {
-      os << (i == 0 ? "[[" : " [");
+      oss << (i == 0 ? "[" : " [");
       for (size_t j = 0; j < n(); ++j)
-        os << this->at(i, j)
-            << (j == n() - 1 ? "]" : " ");
-      os << (i == m() - 1 ? "]" : "");
-      os << std::endl;
+      {
+        oss << (*this)(i, j);
+        if (j < n() - 1)
+          oss << " ";
+      }
+      oss << (i < m() - 1 ? "]\n" : "]]");
     }
 
-    os.flags(old_flags);
-    os.precision(old_precision);
+    if (newline)
+      oss << '\n';
+
+    return oss.str();
   }
 
   /* -------------------- free functions --------------------*/
@@ -332,5 +336,12 @@ namespace pdes
     Matrix mat(A);
     mat -= B;
     return mat;
+  }
+
+  template<typename Number>
+  std::ostream&
+  operator<<(std::ostream& os, const Matrix<Number>& mat)
+  {
+    return os << mat.to_string(3, false, false);
   }
 }
