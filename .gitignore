@@ -3,3 +3,4 @@ cmake-build-debug
 old
 
 .idea
+*.DS_Store
