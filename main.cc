@@ -1,7 +1,12 @@
 #include "framework/math/vector.h"
 #include "framework/math/matrix.h"
-#include "framework/mesh/orthomesh_generator.h"
+#include "framework/math/linear_solver/cg.h"
+#include "framework/math/linear_solver/precondition_ssor.h"
+#include "framework/math/linear_solver/solver_control.h"
+#include "framework/logger.h"
 #include <iostream>
+
+#include "framework/math/linear_solver/jacobi.h"
 
 
 int
@@ -11,31 +16,32 @@ main()
 
   using namespace pdes;
 
-  Matrix<> A(3, 3, 0.0);
-  for (size_t i = 0; i < A.m(); ++i)
-    for (size_t j = 0; j < A.n(); ++j)
-    {
-      A(i, j) = static_cast<double>(i * A.n() + j + 1);
-    }
-  A.print();
+  constexpr size_t n = 10; // number of interior nodes
+  Matrix A(n, n, 0.0);
+  Vector b(n, 0.0);
+  Vector x(n, 0.0); // initial guess = 0
 
-  Vector<> x(3, 0.0);
-  for (size_t i = 0; i < x.size(); ++i)
-    x[i] += static_cast<double>(i + 1);
-  x.print();
+  // Assemble 1D Laplacian matrix (Dirichlet BCs: u(0) = u(1) = 0)
+  constexpr auto h = 1.0 / n;
+  for (size_t i = 0; i < n; ++i)
+  {
+    A(i, i) = 2.0;
+    if (i > 0)
+      A(i, i - 1) = -1.0;
+    if (i < n - 1)
+      A(i, i + 1) = -1.0;
+    b(i) = h * h; // constant source term
+  }
 
-  const auto b = A * x;
-  b.print();
+  // Preconditioned solve
+  PreconditionSSOR<> M;
+  M.initialize(A);
 
-  constexpr double width = 20.0;
-  constexpr unsigned int nx = 10;
+  SolverControl control(100, 1.0e-8);
+  JacobiSolver<> solver(&control);
+  const Logger logger(std::cout, LogLevel::DEBUG);
+  solver.set_logger(logger);
+  auto [iterations, residual, converged] = solver.solve(A, b, x);
 
-  std::vector<double> x_coords;
-  x_coords.reserve(nx + 1);
-  for (unsigned int i = 0; i < nx + 1; ++i)
-    x_coords.push_back(i * width / nx);
-
-  auto mesh = create_1d_orthomesh(x_coords);
-  for (const auto& [i, vertex]: mesh.vertices())
-    vertex.print();
+  std::cout << "Solution: " << x.to_string(5) << '\n';
 }
