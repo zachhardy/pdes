@@ -1,6 +1,7 @@
 #pragma once
 #include "framework/types.h"
 #include "framework/math/ndarray.h"
+#include <numeric>
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -9,54 +10,106 @@
 namespace pdes
 {
   template<typename Number = types::real>
-  class Vector : public NDArray<1, Number>
+  class Vector
   {
   public:
+    Vector() = default;
+
     /// Constructs a Vector with the given @p size set to @p value.
     explicit Vector(const size_t n, const Number value = 0)
-      : NDArray<1, Number>({n}, value) {}
+      : entries_({n}, value)
+    {}
 
-    /// Constructs a size @p n vector and set the entries with raw data.
+    /// Constructs a size @p n Vector and set the entries with raw data.
     explicit Vector(const size_t n, const Number* ptr)
-      : NDArray<1, Number>({n}, ptr) {}
+      : entries_({n}, ptr) {}
 
-    /// Set all entries of the Vector to the given @p value.
+    Vector(const Vector& other) = default;
+    Vector(Vector&& other) noexcept = default;
+
+    Vector& operator=(const Vector& other) = default;
+    Vector& operator=(Vector&& other) noexcept = default;
+
+    /// Sets the Vector to a value.
     Vector& operator=(Number value);
 
-    /// Resizes the Vector to the given @p size and set all entries to zero.
-    void resize(const size_t size) { resize(size, 0); }
+    /// Returns the size of the Vector.
+    size_t size() const { return entries_.size(); }
 
+    /// Returns whether the Vector is all zero.
+    bool is_zero() const { return entries_.is_zero(); }
+    /// Returns whether the Vector is all non-negative.
+    bool is_nonnegative() const { return entries_.is_nonnegative(); }
+    /// Returns whether the Vector is empty.
+    bool empty() const noexcept { return size() == 0; }
+
+    /// Resizes the Vector to the given @p size and set all entries to zero.
+    void resize(const size_t size) { resize(size, Number(0)); }
     /// Resizes the Vector to the given @p size and set all entries to @p value.
     void resize(size_t size, Number value);
 
     /// Returns a reference to the entry @p i.
-    Number& operator[](const size_t i) { return this->at(i); }
+    Number& operator[](const size_t i) { return entries_.at(i); }
     /// Returns the value of entry @p i.
-    Number operator[](const size_t i) const { return this->at(i); }
+    Number operator[](const size_t i) const { return entries_.at(i); }
 
     /// Returns a reference to the entry @p i.
-    Number& operator()(const size_t i) { return this->at(i); }
+    Number& operator()(const size_t i) { return entries_.at(i); }
     /// Returns the value of entry @p i.
-    Number operator()(const size_t i) const { return this->at(i); }
+    Number operator()(const size_t i) const { return entries_.at(i); }
 
+    /// Returns an iterator to the start of the Vector.
+    Number* begin() { return entries_.begin(); }
+    /// Returns a constant iterator to the start of the Vector.
+    const Number* begin() const { return entries_.begin(); }
+
+    /// Returns an iterator to the end of the Vector.
+    Number* end() { return entries_.end(); }
+    /// Returns a constant iterator to the end of the Vector.
+    const Number* end() const { return entries_.end(); }
+
+    /// Sets the entire Vector to @p value.
+    void set(const Number value) { entries_.set(value); }
     /// Sets entry @p i to @p value.
-    void set(const size_t i, const Number value) { this->at(i) = value; }
+    void set(const size_t i, const Number value) { entries_.at(i) = value; }
     /// Sets the entries with the given @p indices to the given @p values.
     void set(const std::vector<size_t>& indices,
              const std::vector<Number>& values);
     /// Sets @p n entries at the given @p indices to the given @p values.
     void set(size_t n, const size_t* indices, const Number* values);
 
+    /// Multiplies by a scalar value.
+    void scale(Number a);
+
+    /// Multiplies by a scalar value.
+    Vector& operator *=(Number a);
+    /// Divides by a non-zero scalar value.
+    Vector& operator/=(Number a);
+
     /// Adds the given @p value to all entries.
     void add(Number value);
     /// Adds the given @p value to entry @p i.
-    void add(size_t i, Number value) { this->at(i) += value; }
+    void add(const size_t i, Number value) { entries_.at(i) += value; }
 
     /// Adds the given @p values to the entries at the given @p indices.
     void add(const std::vector<size_t>& indices,
              const std::vector<Number>& values);
     /// Adds the given @p n @p values to the given @p indices.
     void add(size_t n, const size_t* indices, const Number* values);
+
+    /// Addition of another Vector.
+    void add(const Vector& other) { add(Number(1), other); }
+    /// Addition of a scaled Vector.
+    void add(const Number b, const Vector& other) { sadd(Number(1), b, other); }
+    /// Scaling and addition of another Vector.
+    void sadd(const Number a, const Vector& other) { sadd(Number(1), a, other); }
+    /// Scaling and addition of a scaled Vector.
+    void sadd(Number a, Number b, const Vector& other);
+
+    /// Addition of another Vector.
+    Vector& operator+=(const Vector& other);
+    /// Subtraction of another Vector.
+    Vector& operator-=(const Vector& other);
 
     /// Returns the minimum-valued entry.
     Number min() const;
@@ -86,24 +139,29 @@ namespace pdes
     std::string to_string(unsigned int precision = 3,
                           bool scientific = false,
                           bool newline = true) const;
+
+  private
+  :
+    NDArray<1, Number> entries_;
   };
 
   /* -------------------- inline functions --------------------*/
 
   template<typename Number>
   Vector<Number>&
-  Vector<Number>::operator=(Number value)
+  Vector<Number>::operator=(const Number value)
   {
-    this->set(value);
+    entries_ = value;
     return *this;
   }
+
 
   template<typename Number>
   void
   Vector<Number>::resize(const size_t size, const Number value)
   {
-    this->reshape(size);
-    this->set(value);
+    entries_.reshape({size});
+    entries_.set(value);
   }
 
   template<typename Number>
@@ -114,7 +172,7 @@ namespace pdes
     if (indices.size() != values.size())
       throw std::invalid_argument("Vector size mismatch (indices, values).");
 
-    this->set(indices.size(), indices.data(), values.data());
+    set(indices.size(), indices.data(), values.data());
   }
 
   template<typename Number>
@@ -124,7 +182,34 @@ namespace pdes
                       const Number* values)
   {
     for (size_t i = 0; i < n; ++i)
-      this->set(indices[i], values[i]);
+      set(indices[i], values[i]);
+  }
+
+  template<typename Number>
+  void
+  Vector<Number>::scale(const Number a)
+  {
+    auto func = [a](Number x) { return a * x; };
+    std::transform(begin(), end(), begin(), func);
+  }
+
+  template<typename Number>
+  Vector<Number>&
+  Vector<Number>::operator*=(Number a)
+  {
+    scale(a);
+    return *this;
+  }
+
+  template<typename Number>
+  Vector<Number>&
+  Vector<Number>::operator/=(Number a)
+  {
+    if (a == Number(0))
+      throw std::invalid_argument("Division by zero error.");
+
+    scale(Number(1) / a);
+    return *this;
   }
 
   template<typename Number>
@@ -132,7 +217,7 @@ namespace pdes
   Vector<Number>::add(const Number value)
   {
     auto func = [value](Number x) { return value + x; };
-    std::transform(this->cbegin(), this->cend(), this->begin(), func);
+    std::transform(begin(), end(), begin(), func);
   }
 
   template<typename Number>
@@ -142,7 +227,7 @@ namespace pdes
   {
     if (indices.size() != values.size())
       throw std::invalid_argument("Incompatible indices and values sizes.");
-    this->add(indices.size(), indices.data(), values.data());
+    add(indices.size(), indices.data(), values.data());
   }
 
   template<typename Number>
@@ -152,21 +237,49 @@ namespace pdes
                       const Number* values)
   {
     for (size_t i = 0; i < n; ++i)
-      this->add(indices[i], values[i]);
+      add(indices[i], values[i]);
   }
+
+  template<typename Number>
+  void
+  Vector<Number>::sadd(Number a, Number b, const Vector& other)
+  {
+    if (size() != other.size())
+      throw std::invalid_argument("Incompatible Vector sizes.");
+
+    auto func = [a, b](Number x, Number y) { return a * x + b * y; };
+    std::transform(begin(), end(), other.begin(), begin(), func);
+  }
+
+  template<typename Number>
+  Vector<Number>&
+  Vector<Number>::operator+=(const Vector& other)
+  {
+    sadd(Number(1), other);
+    return *this;
+  }
+
+  template<typename Number>
+  Vector<Number>&
+  Vector<Number>::operator-=(const Vector& other)
+  {
+    add(Number(-1), other);
+    return *this;
+  }
+
 
   template<typename Number>
   Number
   Vector<Number>::min() const
   {
-    return *std::min_element(this->cbegin(), this->cend());
+    return *std::min_element(begin(), end());
   }
 
   template<typename Number>
   Number
   Vector<Number>::max() const
   {
-    return *std::max_element(this->cbegin(), this->cend());
+    return *std::max_element(begin(), end());
   }
 
   template<typename Number>
@@ -174,14 +287,14 @@ namespace pdes
   Vector<Number>::sum() const
   {
     auto func = std::plus<Number>();
-    return std::accumulate(this->cbegin(), this->cend(), Number(0), func);
+    return std::accumulate(begin(), end(), Number(0), func);
   }
 
   template<typename Number>
   types::real
   Vector<Number>::mean() const
   {
-    return this->sum() / static_cast<types::real>(this->size());
+    return sum() / static_cast<types::real>(size());
   }
 
   template<typename Number>
@@ -191,7 +304,7 @@ namespace pdes
     auto func = [](Number max, Number x) {
       return std::abs(max) < std::abs(x);
     };
-    return *std::max_element(this->cbegin(), this->cend(), func);
+    return *std::max_element(begin(), end(), func);
   }
 
   template<typename Number>
@@ -199,14 +312,14 @@ namespace pdes
   Vector<Number>::l1_norm() const
   {
     auto func = [](Number norm, Number x) { return norm + std::fabs(x); };
-    return std::accumulate(this->cbegin(), this->cend(), Number(0), func);
+    return std::accumulate(begin(), end(), Number(0), func);
   }
 
   template<typename Number>
   types::real
   Vector<Number>::l2_norm() const
   {
-    return std::sqrt(this->norm_sqr());
+    return std::sqrt(norm_sqr());
   }
 
   template<typename Number>
@@ -216,8 +329,7 @@ namespace pdes
     auto func = [p](Number norm, Number x) {
       return norm + std::pow(std::fabs(x), p);
     };
-    const auto tmp = std::accumulate(this->cbegin(), this->cend(), Number(0),
-                                     func);
+    const auto tmp = std::accumulate(begin(), end(), Number(0), func);
     return std::pow(tmp, Number(1) / p);
   }
 
@@ -225,20 +337,19 @@ namespace pdes
   types::real
   Vector<Number>::norm_sqr() const
   {
-    return std::inner_product(this->cbegin(), this->cend(), this->cbegin(),
-                              Number(0), Number(0));
+    return std::inner_product(begin(), end(), begin(), Number(0));
   }
 
   template<typename Number>
   Number
   Vector<Number>::dot(const Vector& other) const
   {
-    if (this->size() != other.size())
+    if (size() != other.size())
       throw std::invalid_argument("Vector size mismatch.");
 
-    return std::inner_product(this->cbegin(),
-                              this->cend(),
-                              other.cbegin(),
+    return std::inner_product(begin(),
+                              end(),
+                              other.begin(),
                               Number(0));
   }
 
@@ -256,10 +367,10 @@ namespace pdes
       oss << std::fixed;
 
     oss << "[";
-    for (size_t i = 0; i < this->size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
     {
       oss << (*this)(i);
-      if (i < this->size() - 1)
+      if (i < size() - 1)
         oss << " ";
     }
     oss << "]";
@@ -270,6 +381,40 @@ namespace pdes
   }
 
   /* -------------------- free functions --------------------*/
+
+  template<typename Number>
+  Vector<Number>
+  operator*(Number c, const Vector<Number>& x)
+  {
+    return x * c;
+  }
+
+  template<typename Number>
+  Vector<Number>
+  operator-(const Vector<Number>& x)
+  {
+    Vector vec(x);
+    vec *= Number(-1);
+    return vec;
+  }
+
+  template<typename Number>
+  Vector<Number>
+  operator+(const Vector<Number>& x, const Vector<Number>& y)
+  {
+    Vector vec(x);
+    vec += y;
+    return vec;
+  }
+
+  template<typename Number>
+  Vector<Number>
+  operator-(const Vector<Number>& x, const Vector<Number>& y)
+  {
+    Vector vec(x);
+    vec -= y;
+    return vec;
+  }
 
   template<typename Number>
   Number
@@ -335,45 +480,18 @@ namespace pdes
   }
 
   template<typename Number>
+  types::real
+  dot(const Vector<Number>& x, const Vector<Number>& y)
+  {
+    return x.dot(y);
+  }
+
+  template<typename Number>
   Vector<Number>
   operator*(const Vector<Number>& x, Number c)
   {
     Vector vec(x);
     vec *= c;
-    return vec;
-  }
-
-  template<typename Number>
-  Vector<Number>
-  operator*(Number c, const Vector<Number>& x)
-  {
-    return x * c;
-  }
-
-  template<typename Number>
-  Vector<Number>
-  operator-(const Vector<Number>& x)
-  {
-    Vector vec(x);
-    vec *= Number(-1);
-    return vec;
-  }
-
-  template<typename Number>
-  Vector<Number>
-  operator+(const Vector<Number>& x, const Vector<Number>& y)
-  {
-    Vector vec(x);
-    vec += y;
-    return vec;
-  }
-
-  template<typename Number>
-  Vector<Number>
-  operator-(const Vector<Number>& x, const Vector<Number>& y)
-  {
-    Vector vec(x);
-    vec -= y;
     return vec;
   }
 
