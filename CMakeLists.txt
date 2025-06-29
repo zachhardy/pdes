@@ -14,6 +14,9 @@ include(CheckSymbolExists)
 
 # Dependencies
 find_package(MPI REQUIRED)
+find_package(GTest REQUIRED)
+message(STATUS "GTest found at: ${GTest_DIR}")
+
 
 # libpdes
 file(GLOB_RECURSE LIBPDES_SOURCES CONFIGURE_DEPENDS framework/*.cc)
@@ -24,7 +27,6 @@ target_include_directories(libpdes
         $<INSTALL_INTERFACE:include/pdes>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
-        ${CMAKE_CURRENT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}
         PUBLIC
         ${LUA_INCLUDE_DIR}
@@ -46,4 +48,26 @@ target_link_libraries(pdes
         MPI::MPI_CXX
 )
 
+# GTest unit testing
+enable_testing()
+include(GoogleTest)
 
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS test/*.cc)
+
+if (TEST_SOURCES)
+    add_executable(pdes_test ${TEST_SOURCES})
+
+    target_link_libraries(pdes_test
+            PRIVATE
+            libpdes
+            GTest::gtest
+            GTest::gtest_main
+    )
+
+    target_include_directories(pdes_test
+            PRIVATE
+            ${PROJECT_SOURCE_DIR}
+    )
+
+    gtest_discover_tests(pdes_test)
+endif ()
