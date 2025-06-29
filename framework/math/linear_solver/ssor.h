@@ -2,7 +2,6 @@
 #include "framework/math/linear_solver/linear_solver.h"
 #include "framework/math/linear_solver/solver_control.h"
 #include "framework/math/linear_solver/util.h"
-#include <vector>
 #include <stdexcept>
 #include <string>
 

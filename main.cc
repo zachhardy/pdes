@@ -1,7 +1,7 @@
 #include "framework/math/vector.h"
 #include "framework/math/matrix.h"
 #include "framework/math/linear_solver/cg.h"
-#include "framework/math/linear_solver/precondition_ssor.h"
+#include "framework/math/linear_solver/preconditioner/precondition_ssor.h"
 #include "framework/math/linear_solver/solver_control.h"
 #include "framework/logger.h"
 #include <iostream>
@@ -34,14 +34,12 @@ main()
   }
 
   // Preconditioned solve
-  PreconditionSSOR<> M;
-  M.initialize(A);
-
+  const PreconditionSSOR<> M(&A);
   SolverControl control(100, 1.0e-8);
-  JacobiSolver<> solver(&control);
+  CGSolver<> solver(&control);
   const Logger logger(std::cout, LogLevel::DEBUG);
   solver.set_logger(logger);
-  auto [iterations, residual, converged] = solver.solve(A, b, x);
+  auto [iterations, residual, converged] = solver.solve(A, b, x, M);
 
   std::cout << "Solution: " << x.to_string(5) << '\n';
 }

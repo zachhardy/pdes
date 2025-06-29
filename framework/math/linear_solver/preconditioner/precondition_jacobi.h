@@ -1,17 +1,17 @@
 #pragma once
-#include "framework/math/linear_solver/preconditioner.h"
+#include "framework/math/linear_solver/preconditioner/preconditioner.h"
 #include "framework/math/matrix.h"
+#include "framework/math/linear_solver/util.h"
 
 
 namespace pdes
 {
   template<typename Number = double>
-  class PreconditionJacobi : public Preconditioner<Number>
+  class PreconditionJacobi final : public Preconditioner<Number>
   {
   public:
     PreconditionJacobi() = default;
-
-    void initialize(const Matrix<Number>& A);
+    explicit PreconditionJacobi(const Matrix<>* A);
 
     void vmult(const Vector<Number>& src, Vector<Number>& dst) const override;
 
@@ -19,27 +19,18 @@ namespace pdes
 
   private:
     const Matrix<Number>* A_;
-    std::vector<Number> inv_diag_;
+    Vector<Number> inv_diag_;
   };
 
   /*-------------------- inline functions --------------------*/
 
   template<typename Number>
-  void
-  PreconditionJacobi<Number>::initialize(const Matrix<Number>& A)
+  PreconditionJacobi<Number>::PreconditionJacobi(const Matrix<>* A)
+    : A_(A)
   {
-    A_ = &A;
-
-    const size_t n = A.m();
-    inv_diag_.assign(n, Number(0));
-
-    for (size_t i = 0; i < n; ++i)
-    {
-      const auto val = A(i, i);
-      if (val == Number(0))
-        throw std::runtime_error(name() + ": zero diagonal at row " + std::to_string(i));
-      inv_diag_[i] = Number(1) / val;
-    }
+    if (not A_->is_square())
+      throw std::invalid_argument(name() + ": matrix must be square.");
+    inv_diag_ = internal::extract_inv_diagonal(*A_, name());
   }
 
   template<typename Number>

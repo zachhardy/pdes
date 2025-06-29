@@ -1,57 +1,42 @@
 #pragma once
-#include "framework/math/linear_solver/preconditioner.h"
+#include "framework/math/linear_solver/preconditioner/preconditioner.h"
 #include "framework/math/matrix.h"
+#include "framework/math/linear_solver/util.h"
 
 namespace pdes
 {
   /**
-   * SOR preconditioner:
+   * SSOR preconditioner:
    * Applies z ≈ A⁻¹ r via a forward + backward sweep.
    */
   template<typename Number = double>
   class PreconditionSSOR final : public Preconditioner<Number>
   {
   public:
-    explicit PreconditionSSOR(Number omega = 1.3);
-
-    void initialize(const Matrix<Number>& A);
+    explicit PreconditionSSOR(const Matrix<Number>* A, Number omega = 1.3);
 
     void vmult(const Vector<Number>& src, Vector<Number>& dst) const override;
 
     std::string name() const override { return "PreconditionSSOR"; }
 
   private:
-    Number omega_;
     const Matrix<Number>* A_ = nullptr;
-    std::vector<Number> inv_diag_;
+    Vector<Number> inv_diag_;
+    Number omega_;
   };
 
   /*-------------------- inline functions --------------------*/
 
   template<typename Number>
-  PreconditionSSOR<Number>::PreconditionSSOR(Number omega)
-    : omega_(omega)
+  PreconditionSSOR<Number>::PreconditionSSOR(const Matrix<Number>* A, const Number omega)
+    : A_(A),
+      omega_(omega)
   {
+    if (not A_->is_square())
+      throw std::invalid_argument(name() + ": matrix must be square.");
     if (omega <= 0.0 or omega >= 2.0)
-      throw std::invalid_argument("SOR omega must be in (0, 2)");
-  }
-
-  template<typename Number>
-  void
-  PreconditionSSOR<Number>::initialize(const Matrix<Number>& A)
-  {
-    A_ = &A;
-
-    const size_t n = A.m();
-    inv_diag_.resize(n);
-
-    for (size_t i = 0; i < n; ++i)
-    {
-      const auto val = A(i, i);
-      if (val == Number(0))
-        throw std::runtime_error(name() + ": zero diagonal at row " + std::to_string(i));
-      inv_diag_[i] = Number(1) / val;
-    }
+      throw std::invalid_argument(name() + ": SSOR omega must be in (0, 2)");
+    inv_diag_ = internal::extract_inv_diagonal(*A_, name());
   }
 
   template<typename Number>

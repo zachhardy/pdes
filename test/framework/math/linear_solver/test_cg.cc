@@ -2,9 +2,8 @@
 
 #include "framework/math/vector.h"
 #include "framework/math/linear_solver/cg.h"
-#include "framework/math/linear_solver/precondition_identity.h"
-#include "framework/math/linear_solver/precondition_jacobi.h"
-#include "framework/math/linear_solver/precondition_ssor.h"
+#include "framework/math/linear_solver/preconditioner/precondition_jacobi.h"
+#include "framework/math/linear_solver/preconditioner/precondition_ssor.h"
 #include "framework/math/linear_solver/solver_control.h"
 
 #include "test/framework/math/linear_solver/utils/matrix_builder.h"
@@ -39,9 +38,7 @@ namespace pdes::test
     {
       Vector<> b(n, 1.0); // RHS: all ones
       Vector<> x(n, 0.0); // Initial guess
-
-      PreconditionJacobi<> M;
-      M.initialize(A);
+      const PreconditionJacobi<> M(&A);
 
       const auto result = solver.solve(A, b, x, M);
       EXPECT_TRUE(result.converged);
@@ -55,9 +52,7 @@ namespace pdes::test
     {
       Vector<> b(n, 1.0); // RHS: all ones
       Vector<> x(n, 0.0); // Initial guess
-
-      PreconditionSSOR<> M;
-      M.initialize(A);
+      const PreconditionSSOR<> M(&A);
 
       const auto result = solver.solve(A, b, x, M);
       EXPECT_TRUE(result.converged);

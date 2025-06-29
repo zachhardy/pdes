@@ -1,9 +1,8 @@
 #pragma once
 #include "framework/math/vector.h"
 #include "framework/math/matrix.h"
-#include "framework/math/linear_solver/preconditioner.h"
 #include "framework/math/linear_solver/solver_control.h"
-#include "framework/math/linear_solver/precondition_identity.h"
+#include "framework/math/linear_solver/preconditioner/precondition_identity.h"
 #include "framework/logger.h"
 
 

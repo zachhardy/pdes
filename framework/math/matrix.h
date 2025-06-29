@@ -38,11 +38,13 @@ namespace pdes
     /// Returns the size of the Matrix
     size_t size() const { return entries_.size(); }
 
-    /// Returns whether the Vector is all zero.
+    /// Returns whether the Matrix is all zero.
     bool is_zero() const { return entries_.is_zero(); }
-    /// Returns whether the Vector is all non-negative.
+    /// Returns whether the Matrix is all non-negative.
     bool is_nonnegative() const { return entries_.is_nonnegative(); }
-    /// Returns whether the Vector is empty.
+    /// Returns whether the Matrix is square.
+    bool is_square() const { return n() == m(); }
+    /// Returns whether the Matrix is empty.
     bool empty() const noexcept { return size() == 0; }
 
     /// Returns a reference to the entry at row @p i, column @p j.

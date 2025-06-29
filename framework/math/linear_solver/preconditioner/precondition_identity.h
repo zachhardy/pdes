@@ -1,10 +1,10 @@
 #pragma once
-#include "framework/math/linear_solver/preconditioner.h"
+#include "framework/math/linear_solver/preconditioner/preconditioner.h"
 
 namespace pdes
 {
   template<typename Number = types::real>
-  class PreconditionIdentity : public Preconditioner<Number>
+  class PreconditionIdentity final : public Preconditioner<Number>
   {
   public:
     void vmult(const Vector<Number>& src, Vector<Number>& dst) const override;
