@@ -148,7 +148,7 @@ namespace pdes
     NDArray<1, Number> entries_;
   };
 
-  /* -------------------- inline functions --------------------*/
+  /* -------------------- member functions --------------------*/
 
   template<typename Number>
   Vector<Number>&
@@ -269,7 +269,6 @@ namespace pdes
     add(Number(-1), other);
     return *this;
   }
-
 
   template<typename Number>
   Number

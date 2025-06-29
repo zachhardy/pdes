@@ -141,7 +141,7 @@ namespace pdes
     std::unique_ptr<Number[]> entries_;
   };
 
-  /* -------------------- inline functions --------------------*/
+  /* -------------------- member functions --------------------*/
 
   template<int rank, typename Number>
   NDArray<rank, Number>::NDArray() noexcept

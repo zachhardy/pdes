@@ -46,7 +46,7 @@ namespace pdes
     const Logger* logger_ = &Logger::default_logger();
   };
 
-  /*-------------------- inline functions --------------------*/
+  /*-------------------- member functions --------------------*/
 
   template<typename Derived, typename VectorType>
   LinearSolver<Derived, VectorType>::LinearSolver(SolverControl* control)

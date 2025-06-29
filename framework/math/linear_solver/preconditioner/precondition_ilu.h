@@ -26,7 +26,7 @@ namespace pdes
     MatrixType L_, U_;
   };
 
-  /*-------------------- inline functions --------------------*/
+  /*-------------------- member functions --------------------*/
 
   template<typename MatrixType>
   PreconditionILU<MatrixType>::PreconditionILU(const MatrixType* A)

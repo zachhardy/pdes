@@ -11,7 +11,7 @@ namespace pdes
     static std::string name() { return "PreconditionIdentity"; }
   };
 
-  /*-------------------- inline functions --------------------*/
+  /*-------------------- member functions --------------------*/
 
   template<typename VectorType>
   void

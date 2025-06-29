@@ -27,7 +27,7 @@ namespace pdes
     value_type omega_;
   };
 
-  /*-------------------- inline functions --------------------*/
+  /*-------------------- member functions --------------------*/
 
   template<typename MatrixType>
   PreconditionSSOR<MatrixType>::PreconditionSSOR(const MatrixType* A, const value_type omega)

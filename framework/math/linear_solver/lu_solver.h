@@ -15,7 +15,7 @@ namespace pdes
     void factor(const MatrixType& A);
 
     template<typename VectorType>
-    void solve(const MatrixType& A, const VectorType& b, VectorType& x) const;
+    void solve(const MatrixType& A, const VectorType& b, VectorType& x);
 
     template<typename VectorType>
     void solve(const VectorType& b, VectorType& x) const;
@@ -24,6 +24,7 @@ namespace pdes
 
   private:
     MatrixType L_, U_;
+    std::vector<size_t> pivot_;
     bool factored_ = false;
   };
 
@@ -37,31 +38,56 @@ namespace pdes
     if (A.m() != A.n())
       throw std::invalid_argument(name() + ": matrix must be square.");
 
-    L_ = MatrixType(n, n, value_type(0));
     U_ = A;
+    L_ = MatrixType(n, n, value_type(0));
+    pivot_.resize(n);
+    std::iota(pivot_.begin(), pivot_.end(), 0);
 
     for (size_t k = 0; k < n; ++k)
     {
-      if (U_(k, k) == value_type(0))
-        throw std::runtime_error(name() + ": zero pivot at row " + std::to_string(k));
-
-      L_(k, k) = value_type(1);
+      // Find pivot row
+      auto max_row = k;
+      auto max_val = std::abs(U_(pivot_[k], k));
       for (size_t i = k + 1; i < n; ++i)
       {
-        const auto m = U_(i, k) / U_(k, k);
-        L_(i, k) = m;
+        if (auto val = std::abs(U_(pivot_[i], k)); val > max_val)
+        {
+          max_val = val;
+          max_row = i;
+        }
+      }
+
+      if (max_val == value_type(0))
+        throw std::runtime_error(name() + ": singular matrix in LU factorization.");
+
+      // Swap rows in pivot vector
+      std::swap(pivot_[k], pivot_[max_row]);
+
+      // Eliminate below pivot
+      for (size_t i = k + 1; i < n; ++i)
+      {
+        const size_t row_i = pivot_[i];
+        const size_t row_k = pivot_[k];
+
+        const auto factor = U_(row_i, k) / U_(row_k, k);
+        L_(row_i, k) = factor;
+
         for (size_t j = k; j < n; ++j)
-          U_(i, j) -= m * U_(k, j);
-        U_(i, k) = 0; // optional: keep upper matrix clean
+          U_(row_i, j) -= factor * U_(row_k, j);
       }
     }
+
+    // Fill diagonal of L
+    for (size_t i = 0; i < n; ++i)
+      L_(i, i) = 1.0;
+
     factored_ = true;
   }
 
   template<typename MatrixType>
   template<typename VectorType>
   void
-  LUSolver<MatrixType>::solve(const MatrixType& A, const VectorType& b, VectorType& x) const
+  LUSolver<MatrixType>::solve(const MatrixType& A, const VectorType& b, VectorType& x)
   {
     factor(A);
     solve(b, x);
@@ -79,18 +105,23 @@ namespace pdes
 
     const size_t n = L_.m();
 
-    // Forward solve: L y = b
+    // Step 1: Permute right-hand side
+    VectorType b_perm(n);
+    for (size_t i = 0; i < n; ++i)
+      b_perm(i) = b(pivot_[i]);
+
+    // Step 2: Forward substitution Ly = b_perm
     VectorType y(n);
     for (size_t i = 0; i < n; ++i)
     {
-      y(i) = b(i);
+      y(i) = b_perm(i);
       for (size_t j = 0; j < i; ++j)
         y(i) -= L_(i, j) * y(j);
     }
 
-    // Backward solve: U x = y
-    x.resize(n);
-    for (size_t i = n; i-- > 0;)
+    // Step 3: Backward substitution Ux = y
+    x.resize(n, 0.0);
+    for (ssize_t i = static_cast<ssize_t>(n) - 1; i >= 0; --i)
     {
       x(i) = y(i);
       for (size_t j = i + 1; j < n; ++j)

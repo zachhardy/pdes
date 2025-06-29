@@ -24,7 +24,7 @@ namespace pdes
     std::vector<value_type> inv_diag_;
   };
 
-  /*-------------------- inline functions --------------------*/
+  /*-------------------- member functions --------------------*/
 
   template<typename MatrixType>
   PreconditionJacobi<MatrixType>::PreconditionJacobi(const MatrixType* A)

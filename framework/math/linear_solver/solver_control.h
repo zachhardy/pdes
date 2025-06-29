@@ -7,6 +7,13 @@ namespace pdes
   class SolverControl
   {
   public:
+    enum class Verbosity
+    {
+      SILENT,
+      SUMMARY,
+      ITERATIONS
+    };
+
     struct Result
     {
       unsigned int iterations = 0;
@@ -24,11 +31,12 @@ namespace pdes
      * Called inside solver loop with current residual norm.
      * Returns true if solver should continue.
      */
-    bool check(unsigned int iter, types::real residual);
+    bool check(unsigned int iter, types::real residual, Verbosity = Verbosity::SILENT);
 
     bool converged() const { return converged_; }
     unsigned int iterations() const { return residuals_.size(); }
 
+    types::real initial_residual() const { return initial_residual_; }
     types::real final_residual() const { return residuals_.empty() ? 0.0 : residuals_.back(); }
     const std::vector<types::real>& residual_history() const { return residuals_; }
 
@@ -64,7 +72,8 @@ namespace pdes
 
   inline bool
   SolverControl::check(const unsigned int iter,
-                       const types::real residual)
+                       const types::real residual,
+                       const Verbosity verbosity)
   {
     if (iter >= max_iters_)
       return false;

@@ -34,7 +34,7 @@ namespace pdes
     value_type omega_ = value_type(1.3);
   };
 
-  /*-------------------- inline functions --------------------*/
+  /*-------------------- member functions --------------------*/
 
   template<typename VectorType>
   SORSolver<VectorType>::SORSolver(SolverControl* control, const value_type omega)

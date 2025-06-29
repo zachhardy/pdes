@@ -32,7 +32,7 @@ namespace pdes
                  const PreconditionerType&) const;
   };
 
-  /*-------------------- inline functions --------------------*/
+  /*-------------------- member functions --------------------*/
 
   template<typename VectorType>
   template<typename MatrixType, typename PreconditionerType>

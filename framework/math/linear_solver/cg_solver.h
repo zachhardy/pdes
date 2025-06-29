@@ -32,6 +32,8 @@ namespace pdes
                  const PreconditionerType& M) const;
   };
 
+  /*-------------------- member functions --------------------*/
+
   template<typename VectorType>
   template<typename MatrixType, typename PreconditionerType>
   typename CGSolver<VectorType>::Result

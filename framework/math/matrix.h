@@ -182,7 +182,7 @@ namespace pdes
     NDArray<2, Number> entries_;
   };
 
-  /* -------------------- inline functions --------------------*/
+  /* -------------------- member functions --------------------*/
 
   template<typename Number>
   void
