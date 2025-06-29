@@ -1,4 +1,5 @@
 #pragma once
+#include "framework/math/linear_solver/preconditioner/preconditioner.h"
 #include "framework/math/matrix.h"
 #include "framework/math/linear_solver/util.h"
 
@@ -13,20 +14,20 @@ namespace pdes
    * @tparam MatrixType Type of matrix to precondition (default: Matrix<>).
    */
   template<typename MatrixType = Matrix<>>
-  class PreconditionSSOR
+  class PreconditionSSOR final : public Preconditioner<typename MatrixType::vector_type>
   {
   public:
+    using VectorType = typename MatrixType::vector_type;
     using value_type = typename MatrixType::value_type;
 
     /// Constructs the preconditioner using matrix A and relaxation factor omega.
     explicit PreconditionSSOR(const MatrixType* A, value_type omega = 1.3);
 
-    /// Applies the preconditioner: z ≈ A⁻¹ r.
-    template<typename VectorType = Vector<>>
-    void vmult(const VectorType& src, VectorType& dst) const;
+    /// Applies the preconditioner: z = Ainv r.
+    void vmult(const VectorType& src, VectorType& dst) const override;
 
     /// Returns the name of the preconditioner.
-    static std::string name() { return "PreconditionSSOR"; }
+    std::string name() const override { return "PreconditionSSOR"; }
 
   private:
     const MatrixType* A_ = nullptr;
@@ -49,7 +50,6 @@ namespace pdes
   }
 
   template<typename MatrixType>
-  template<typename VectorType>
   void
   PreconditionSSOR<MatrixType>::vmult(const VectorType& src, VectorType& dst) const
   {

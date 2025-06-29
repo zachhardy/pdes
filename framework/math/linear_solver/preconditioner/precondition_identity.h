@@ -1,4 +1,6 @@
 #pragma once
+#include "framework/math/linear_solver/preconditioner/preconditioner.h"
+#include "framework/math/matrix.h"
 
 namespace pdes
 {
@@ -8,14 +10,16 @@ namespace pdes
    * This is a no-op preconditioner that simply copies the input vector to the output.
    * It is used as a default when no preconditioning is desired.
    */
-  class PreconditionIdentity
+  template<typename MatrixType = Matrix<>>
+  class PreconditionIdentity final : public Preconditioner<typename MatrixType::vector_type>
   {
   public:
+    using VectorType = typename MatrixType::vector_type;
+
     /// Applies z = r with no modification.
-    template<typename VectorType>
-    static void vmult(const VectorType& src, VectorType& dst) { dst = src; }
+    void vmult(const VectorType& src, VectorType& dst) const override { dst = src; }
 
     /// Returns the name of the preconditioner.
-    static std::string name() { return "PreconditionIdentity"; }
+    std::string name() const override { return "PreconditionIdentity"; }
   };
 }

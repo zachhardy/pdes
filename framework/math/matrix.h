@@ -26,6 +26,7 @@ namespace pdes
   {
   public:
     using value_type = typename NDArray<2, Number>::value_type;
+    using vector_type = Vector<Number>;
 
     /// Constructs an empty matrix.
     Matrix() = default;

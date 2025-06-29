@@ -37,6 +37,7 @@ namespace pdes
     };
 
     using value_type = Number;
+    using vector_type = Vector<Number>;
 
     /// Default constructor.
     SparseMatrix() = default;

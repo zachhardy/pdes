@@ -7,7 +7,6 @@ namespace pdes::test
   TEST(Matrix, ConstructWithDimensions)
   {
     const Matrix<> A(3, 4);
-    std::cout << A.m() << "  " << A.n() << std::endl;
     EXPECT_EQ(A.m(), 3);
     EXPECT_EQ(A.n(), 4);
   }

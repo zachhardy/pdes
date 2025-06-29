@@ -1,6 +1,6 @@
 #pragma once
+#include "framework/math/linear_solver/preconditioner/preconditioner.h"
 #include "framework/math/matrix.h"
-#include "framework/math/vector.h"
 
 namespace pdes
 {
@@ -13,20 +13,20 @@ namespace pdes
    * @tparam MatrixType Type of matrix to precondition.
    */
   template<typename MatrixType = Matrix<>>
-  class PreconditionILU
+  class PreconditionILU final : public Preconditioner<typename MatrixType::vector_type>
   {
   public:
+    using VectorType = typename MatrixType::vector_type;
     using value_type = typename MatrixType::value_type;
 
     /// Constructs and factorizes the matrix A.
     explicit PreconditionILU(const MatrixType* A);
 
     /// Applies the preconditioner: solves LU z = r.
-    template<typename VectorType>
-    void vmult(const VectorType& src, VectorType& dst) const;
+    void vmult(const VectorType& src, VectorType& dst) const override;
 
     /// Returns the name of the preconditioner.
-    static std::string name() { return "PreconditionILU"; }
+    std::string name() const override { return "PreconditionILU"; }
 
   private:
     const MatrixType* A_ = nullptr;
@@ -63,7 +63,6 @@ namespace pdes
   }
 
   template<typename MatrixType>
-  template<typename VectorType>
   void
   PreconditionILU<MatrixType>::vmult(const VectorType& src, VectorType& dst) const
   {
