@@ -14,18 +14,16 @@ namespace pdes
   class JacobiSolver final : public LinearSolver<JacobiSolver<VectorType>, VectorType>
   {
   public:
+    using Base = LinearSolver<JacobiSolver, VectorType>;
+    using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
-    using Result = typename LinearSolver<JacobiSolver, VectorType>::Result;
 
     JacobiSolver() = default;
-
-    explicit JacobiSolver(SolverControl* control)
-      : LinearSolver<JacobiSolver, VectorType>(control)
-    {}
+    explicit JacobiSolver(SolverControl* control) : Base(control) {}
 
     std::string name() const override { return "JacobiSolver"; }
 
-    using LinearSolver<JacobiSolver, VectorType>::solve;
+    using Base::solve;
 
     template<typename MatrixType, typename PreconditionerType>
     Result solve(const MatrixType& A,

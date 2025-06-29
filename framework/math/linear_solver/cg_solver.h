@@ -15,12 +15,11 @@ namespace pdes
   class CGSolver final : public LinearSolver<CGSolver<VectorType>, VectorType>
   {
   public:
+    using Base = LinearSolver<CGSolver, VectorType>;
+    using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
-    using Result = typename LinearSolver<CGSolver, VectorType>::Result;
 
-    explicit CGSolver(SolverControl* control)
-      : LinearSolver<CGSolver, VectorType>(control)
-    {}
+    explicit CGSolver(SolverControl* control) : Base(control) {}
 
     std::string name() const override { return "ConjugateGradientSolver"; }
 

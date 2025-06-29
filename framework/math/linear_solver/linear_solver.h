@@ -15,8 +15,8 @@ namespace pdes
   class LinearSolver
   {
   public:
-    using value_type = typename VectorType::value_type;
     using Result = SolverControl::Result;
+    using value_type = typename VectorType::value_type;
 
     LinearSolver() = default;
     explicit LinearSolver(SolverControl* control);

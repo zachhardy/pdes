@@ -12,14 +12,12 @@ namespace pdes
   class GaussSeidelSolver final : public SORSolver<VectorType>
   {
   public:
+    using Base = SORSolver<VectorType>;
+    using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
-    using Result = typename LinearSolver<GaussSeidelSolver, VectorType>::Result;
 
     GaussSeidelSolver() = default;
-
-    explicit GaussSeidelSolver(SolverControl* control)
-      : SORSolver<VectorType>(control, value_type(1))
-    {}
+    explicit GaussSeidelSolver(SolverControl* control) : Base(control, value_type(1)) {}
 
     std::string name() const override { return "GaussSeidelSolver"; }
   };

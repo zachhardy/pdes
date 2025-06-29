@@ -15,13 +15,11 @@ namespace pdes
   class SSORSolver final : public LinearSolver<SSORSolver<VectorType>, VectorType>
   {
   public:
+    using Base = LinearSolver<SSORSolver, VectorType>;
+    using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
-    using Result = typename LinearSolver<SSORSolver, VectorType>::Result;
 
-    explicit SSORSolver(SolverControl* control)
-      : LinearSolver<SSORSolver, VectorType>(control)
-    {}
-
+    explicit SSORSolver(SolverControl* control) : Base(control) {}
     explicit SSORSolver(SolverControl* control, value_type omega);
 
     std::string name() const override { return "SSORSolver"; }
