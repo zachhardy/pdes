@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "framework/math/vector.h"
-#include "framework/math/linear_solver/ssor.h"
+#include "framework/math/linear_solver/ssor_solver.h"
 #include "framework/math/linear_solver/solver_control.h"
 
 #include "test/framework/math/linear_solver/utils/matrix_builder.h"

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "framework/math/vector.h"
-#include "framework/math/linear_solver/cg.h"
+#include "framework/math/linear_solver/cg_solver.h"
 #include "framework/math/linear_solver/preconditioner/precondition_jacobi.h"
 #include "framework/math/linear_solver/preconditioner/precondition_ssor.h"
 #include "framework/math/linear_solver/solver_control.h"

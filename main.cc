@@ -1,12 +1,12 @@
 #include "framework/math/vector.h"
 #include "framework/math/matrix.h"
-#include "framework/math/linear_solver/cg.h"
+#include "framework/math/linear_solver/cg_solver.h"
 #include "framework/math/linear_solver/preconditioner/precondition_ssor.h"
 #include "framework/math/linear_solver/solver_control.h"
 #include "framework/logger.h"
 #include <iostream>
 
-#include "framework/math/linear_solver/jacobi.h"
+#include "framework/math/linear_solver/jacobi_solver.h"
 
 
 int

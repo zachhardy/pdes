@@ -1,5 +1,5 @@
 #pragma once
-#include "framework/math/linear_solver/sor.h"
+#include "framework/math/linear_solver/sor_solver.h"
 
 
 namespace pdes
