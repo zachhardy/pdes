@@ -5,14 +5,14 @@
 namespace pdes
 {
   /**
-   * @brief Incomplete LU (ILU(0)) preconditioner.
+   * Incomplete LU (ILU(0)) preconditioner.
    *
    * Performs an incomplete LU factorization of the matrix with zero fill-in
    * and applies it via forward and backward substitution.
    *
    * @tparam MatrixType Type of matrix to precondition.
    */
-  template<typename MatrixType>
+  template<typename MatrixType = Matrix<>>
   class PreconditionILU
   {
   public:
@@ -30,7 +30,7 @@ namespace pdes
 
   private:
     const MatrixType* A_ = nullptr;
-    MatrixType L_, U_;
+    MatrixType LU_;
   };
 
   /*-------------------- member functions --------------------*/
@@ -42,25 +42,21 @@ namespace pdes
     if (not A_->is_square())
       throw std::invalid_argument(name() + ": matrix must be square");
 
-    const auto n = A_->m();
-    L_ = Matrix<value_type>(n, n, value_type(0));
-    U_ = Matrix<value_type>(n, n, value_type(0));
-
-    for (size_t i = 0; i < n; ++i)
+    LU_ = *A_;
+    const auto n = LU_.m();
+    for (size_t k = 0; k < n; ++k)
     {
-      for (size_t j = 0; j < n; ++j)
-      {
-        value_type sum = (*A_)(i, j);
-        for (size_t k = 0; k < std::min(i, j); ++k)
-          sum -= L_(i, k) * U_(k, j);
+      auto diag = LU_(k, k);
+      if (diag == value_type(0))
+        continue; // Skip division by zero
 
-        if (i > j)
-          L_(i, j) = sum / U_(j, j);
-        else
+      for (size_t i = k + 1; i < n; ++i)
+      {
+        if (LU_(i, k) != value_type(0))
         {
-          U_(i, j) = sum;
-          if (i == j)
-            L_(i, i) = value_type(1);
+          LU_(i, k) /= diag;
+          for (int j = k + 1; j < n; ++j)
+            LU_(i, j) -= LU_(i, k) * LU_(k, j);
         }
       }
     }
@@ -71,35 +67,23 @@ namespace pdes
   void
   PreconditionILU<MatrixType>::vmult(const VectorType& src, VectorType& dst) const
   {
-    if (not A_)
-      throw std::runtime_error(name() + " not initialized");
-    const auto n = src.size();
-    if (n != L_.m())
-      throw std::runtime_error(name() + ": size mismatch");
+    const auto n = static_cast<int>(LU_.m());
+    dst.reinit(n);
 
-    Vector<value_type> y(n, value_type(0));
-    dst.resize(n);
-
-    // Forward solve Ly = src
+    // Forward substitution (Ly = src)
     for (size_t i = 0; i < n; ++i)
     {
-      value_type sum = src(i);
-      for (size_t j = 0; j < i; ++j)
-        sum -= L_(i, j) * y(j);
-      y(i) = sum;
+      dst(i) = src(i);
+      for (int j = 0; j < i; ++j)
+        dst(i) -= LU_(i, j) * dst(j);
     }
 
-    // Backward solve Ux = y
-    for (size_t i = n; i-- > 0;)
+    // Backward substitution (Ux = y)
+    for (int i = n - 1; i >= 0; --i)
     {
-      value_type sum = y(i);
       for (size_t j = i + 1; j < n; ++j)
-        sum -= U_(i, j) * dst(j);
-
-      if (U_(i, i) == value_type(0))
-        throw std::runtime_error(name() + ": zero pivot at row " + std::to_string(i));
-
-      dst(i) = sum / U_(i, i);
+        dst(i) -= LU_(i, j) * dst(j);
+      dst(i) /= LU_(i, i);
     }
   }
 }

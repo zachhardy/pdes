@@ -7,7 +7,7 @@
 namespace pdes
 {
   /**
-   * @brief Successive Over-Relaxation (SOR) solver for linear systems Ax = b.
+   * Successive Over-Relaxation (SOR) solver for linear systems Ax = b.
    *
    * This class implements the SOR method, which generalizes the Gauss-Seidel method
    * by introducing a relaxation parameter \f$ \omega \in (0, 2) \f$ to accelerate

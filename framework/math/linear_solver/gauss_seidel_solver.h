@@ -5,7 +5,7 @@
 namespace pdes
 {
   /**
-   * @brief Gauss-Seidel iterative solver for linear systems Ax = b.
+   * Gauss-Seidel iterative solver for linear systems Ax = b.
    *
    * The Gauss-Seidel method is a variant of the Jacobi iteration that uses updated
    * values as soon as they are available within each iteration. This often results

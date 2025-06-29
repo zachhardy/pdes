@@ -5,7 +5,7 @@
 namespace pdes
 {
   /**
-   * @brief Convergence controller for iterative linear solvers.
+   * Convergence controller for iterative linear solvers.
    *
    * This class monitors the residual norm at each solver iteration and determines
    * whether the iteration should continue or stop based on absolute and relative

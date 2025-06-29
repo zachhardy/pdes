@@ -8,7 +8,7 @@
 namespace pdes
 {
   /**
-   * @brief Conjugate Gradient (CG) solver for symmetric positive-definite systems.
+   * Conjugate Gradient (CG) solver for symmetric positive-definite systems.
    *
    * This solver implements the classical CG method, an efficient Krylov subspace
    * technique for solving large sparse symmetric positive-definite systems.

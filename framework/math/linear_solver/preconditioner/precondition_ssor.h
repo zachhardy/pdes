@@ -5,7 +5,7 @@
 namespace pdes
 {
   /**
-   * @brief Symmetric Successive Over-Relaxation (SSOR) preconditioner.
+   * Symmetric Successive Over-Relaxation (SSOR) preconditioner.
    *
    * Applies one forward and one backward sweep using a relaxation factor \f$ \omega \in (0, 2) \f$.
    * Approximates the inverse of A for use in iterative solvers.
@@ -60,7 +60,7 @@ namespace pdes
 
     const auto n = src.size();
     Vector<value_type> y(n, value_type(0));
-    dst.resize(n, value_type(0));
+    dst.reinit(n, value_type(0));
 
     // Forward solve: (D + \omega L) y = r
     for (size_t i = 0; i < n; ++i)

@@ -4,6 +4,7 @@
 #include "framework/math/linear_solver/cg_solver.h"
 #include "framework/math/linear_solver/preconditioner/precondition_jacobi.h"
 #include "framework/math/linear_solver/preconditioner/precondition_ssor.h"
+#include "framework/math/linear_solver/preconditioner/precondition_ilu.h"
 #include "framework/math/linear_solver/solver_control.h"
 
 #include "test/framework/math/linear_solver/utils/matrix_builder.h"
@@ -53,6 +54,20 @@ namespace pdes::test
       Vector<> b(n, 1.0); // RHS: all ones
       Vector<> x(n, 0.0); // Initial guess
       const PreconditionSSOR<> M(&A);
+
+      const auto result = solver.solve(A, b, x, M);
+      EXPECT_TRUE(result.converged);
+
+      // Check that Ax = b
+      Vector<> Ax = A.vmult(x);
+      for (size_t i = 0; i < n; ++i)
+        EXPECT_LT(std::abs(Ax(i) - b(i)), 1e-6);
+    }
+    // ILU preconditioning
+    {
+      Vector<> b(n, 1.0); // RHS: all ones
+      Vector<> x(n, 0.0); // Initial guess
+      const PreconditionILU M(&A);
 
       const auto result = solver.solve(A, b, x, M);
       EXPECT_TRUE(result.converged);

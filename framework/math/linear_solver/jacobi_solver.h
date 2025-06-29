@@ -7,7 +7,7 @@
 namespace pdes
 {
   /**
-   * @brief Jacobi iterative solver for linear systems Ax = b.
+   * Jacobi iterative solver for linear systems Ax = b.
    *
    * This is a basic stationary method that iteratively updates the solution vector
    * based on the diagonal components of the system matrix. It is simple to implement

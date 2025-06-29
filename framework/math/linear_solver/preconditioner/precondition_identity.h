@@ -3,7 +3,7 @@
 namespace pdes
 {
   /**
-   * @brief Identity preconditioner.
+   * Identity preconditioner.
    *
    * This is a no-op preconditioner that simply copies the input vector to the output.
    * It is used as a default when no preconditioning is desired.

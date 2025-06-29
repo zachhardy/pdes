@@ -8,21 +8,6 @@
 
 namespace pdes
 {
-  /**
-   * @brief A dynamically sized vector class with basic linear algebra operations.
-   *
-   * This class represents a 1D array of numeric entries and provides essential
-   * vector operations such as scaling, addition, norms, and dot products.
-   *
-   * It supports flexible construction, including default, uniform value, and raw
-   * data initialization. Methods are provided for efficient manipulation,
-   * resizing, and access with both `[]` and `()` operators.
-   *
-   * The `Vector` class is designed to interoperate with matrix solvers and is
-   * used throughout the framework for linear algebra routines.
-   *
-   * @tparam Number The underlying scalar type (default: types::real).
-   */
   template<typename Number = types::real>
   class Vector
   {
@@ -32,20 +17,23 @@ namespace pdes
     /// Constructs an empty vector.
     Vector() = default;
 
-    /// Constructs a vector of size @p n, with all entries initialized to @p value.
+    /// Constructs a vector of size @p n, with all entries set to @p value.
     explicit Vector(const size_t n, const Number value = 0) : entries_({n}, value) {}
 
     /// Constructs a vector of size @p n by copying entries from raw pointer @p ptr.
     explicit Vector(const size_t n, const Number* ptr) : entries_({n}, ptr) {}
 
-    Vector(const Vector& other) = default;
-    Vector(Vector&& other) noexcept = default;
+    Vector(const Vector&) = default;
+    Vector(Vector&&) noexcept = default;
 
-    Vector& operator=(const Vector& other) = default;
-    Vector& operator=(Vector&& other) noexcept = default;
+    Vector& operator=(const Vector&) = default;
+    Vector& operator=(Vector&&) noexcept = default;
 
     /// Assigns all entries to @p value.
     Vector& operator=(Number value);
+
+    /// Empties the contents and resets size to zero.
+    void clear() { entries_.clear(); }
 
     /// Returns the number of entries in the vector.
     size_t size() const { return entries_.size(); }
@@ -59,11 +47,11 @@ namespace pdes
     /// Returns true if the vector has no entries.
     bool empty() const noexcept { return size() == 0; }
 
-    /// Resizes the vector to size @p size and sets all entries to zero.
-    void resize(const size_t size) { resize(size, Number(0)); }
+    /// Reinitializes the vector to @p size and sets all entries to zero.
+    void reinit(const size_t size) { reinit(size, Number(0)); }
 
-    /// Resizes the vector to size @p size and sets all entries to @p value.
-    void resize(size_t size, Number value);
+    /// Resizes the vector to @p size and sets all entries to @p value.
+    void reinit(size_t size, Number value);
 
     /// Returns a reference to entry @p i.
     Number& operator[](const size_t i) { return entries_.at(i); }
@@ -89,27 +77,28 @@ namespace pdes
     /// Returns a const pointer to the end of the data.
     const Number* end() const { return entries_.end(); }
 
+    /// Returns a pointer to the start of the data.
+    Number* data() { return entries_.data(); }
+
+    /// Returns a constant pointer to the start of the data.
+    const Number* data() const { return entries_.data(); }
+
     /// Sets all entries to @p value.
     void set(const Number value) { entries_.set(value); }
 
-    /// Sets entry @p i to @p value.
+    // Sets entry @p i to @p value.
     void set(const size_t i, const Number value) { entries_.at(i) = value; }
 
-    /// Sets entries at @p indices to corresponding @p values.
+    /**
+     * Sets a dense block of values using an index array.
+     *
+     * The size of `values` must match the size `indices`.
+     */
     void set(const std::vector<size_t>& indices,
              const std::vector<Number>& values);
 
-    /// Sets @p n entries at @p indices to corresponding @p values.
+    /// Sets values[k] to indices[k] for k in [0, n).
     void set(size_t n, const size_t* indices, const Number* values);
-
-    /// Scales all entries by @p a.
-    void scale(Number a);
-
-    /// Scales all entries by @p a in-place.
-    Vector& operator*=(Number a);
-
-    /// Divides all entries by non-zero @p a in-place.
-    Vector& operator/=(Number a);
 
     /// Adds @p value to all entries.
     void add(Number value);
@@ -117,12 +106,25 @@ namespace pdes
     /// Adds @p value to entry @p i.
     void add(const size_t i, Number value) { entries_.at(i) += value; }
 
-    /// Adds @p values to entries at corresponding @p indices.
+    /**
+     * Adds a dense block of values using an index array.
+     *
+     * The size of `values` must match the size `indices`.
+     */
     void add(const std::vector<size_t>& indices,
              const std::vector<Number>& values);
 
-    /// Adds @p n @p values to entries at @p indices.
+    /// Adds values[k] to indices[k] for k in [0, n).
     void add(size_t n, const size_t* indices, const Number* values);
+
+    /// Scales all entries by @p factor.
+    void scale(Number factor);
+
+    /// Scales all entries by @p factor in-place.
+    Vector& operator*=(Number factor);
+
+    /// Divides all entries by non-zero @p factor in-place.
+    Vector& operator/=(Number factor);
 
     /// Adds another vector.
     void add(const Vector& other) { add(Number(1), other); }
@@ -194,7 +196,7 @@ namespace pdes
 
   template<typename Number>
   void
-  Vector<Number>::resize(const size_t size, const Number value)
+  Vector<Number>::reinit(const size_t size, const Number value)
   {
     entries_.reshape({size});
     entries_.set(value);
@@ -223,33 +225,6 @@ namespace pdes
 
   template<typename Number>
   void
-  Vector<Number>::scale(const Number a)
-  {
-    auto func = [a](Number x) { return a * x; };
-    std::transform(begin(), end(), begin(), func);
-  }
-
-  template<typename Number>
-  Vector<Number>&
-  Vector<Number>::operator*=(Number a)
-  {
-    scale(a);
-    return *this;
-  }
-
-  template<typename Number>
-  Vector<Number>&
-  Vector<Number>::operator/=(Number a)
-  {
-    if (a == Number(0))
-      throw std::invalid_argument("Division by zero error.");
-
-    scale(Number(1) / a);
-    return *this;
-  }
-
-  template<typename Number>
-  void
   Vector<Number>::add(const Number value)
   {
     auto func = [value](Number x) { return value + x; };
@@ -274,6 +249,33 @@ namespace pdes
   {
     for (size_t i = 0; i < n; ++i)
       add(indices[i], values[i]);
+  }
+
+  template<typename Number>
+  void
+  Vector<Number>::scale(const Number factor)
+  {
+    auto func = [factor](Number x) { return factor * x; };
+    std::transform(begin(), end(), begin(), func);
+  }
+
+  template<typename Number>
+  Vector<Number>&
+  Vector<Number>::operator*=(Number factor)
+  {
+    scale(factor);
+    return *this;
+  }
+
+  template<typename Number>
+  Vector<Number>&
+  Vector<Number>::operator/=(Number factor)
+  {
+    if (factor == Number(0))
+      throw std::invalid_argument("Division by zero error.");
+
+    scale(Number(1) / factor);
+    return *this;
   }
 
   template<typename Number>
@@ -419,9 +421,27 @@ namespace pdes
 
   template<typename Number>
   Vector<Number>
-  operator*(Number c, const Vector<Number>& x)
+  operator*(const Vector<Number>& x, const Number c)
+  {
+    Vector vec(x);
+    vec *= c;
+    return vec;
+  }
+
+  template<typename Number>
+  Vector<Number>
+  operator*(const Number c, const Vector<Number>& x)
   {
     return x * c;
+  }
+
+  template<typename Number>
+  Vector<Number>
+  operator/(const Vector<Number>& x, const Number c)
+  {
+    Vector vec(x);
+    vec /= c;
+    return vec;
   }
 
   template<typename Number>
@@ -519,15 +539,6 @@ namespace pdes
   dot(const Vector<Number>& x, const Vector<Number>& y)
   {
     return x.dot(y);
-  }
-
-  template<typename Number>
-  Vector<Number>
-  operator*(const Vector<Number>& x, Number c)
-  {
-    Vector vec(x);
-    vec *= c;
-    return vec;
   }
 
   template<typename Number>

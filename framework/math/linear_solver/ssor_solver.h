@@ -8,7 +8,7 @@
 namespace pdes
 {
   /**
-   * @brief Symmetric Successive Over-Relaxation (SSOR) solver for Ax = b.
+   * Symmetric Successive Over-Relaxation (SSOR) solver for Ax = b.
    *
    * SSOR performs both a forward and backward Gauss-Seidel sweep each iteration,
    * using a relaxation factor \f$ \omega \in (0, 2) \f$. It can improve convergence

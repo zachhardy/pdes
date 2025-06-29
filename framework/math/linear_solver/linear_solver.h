@@ -8,7 +8,7 @@
 namespace pdes
 {
   /**
-   * @brief Base class for iterative linear solvers.
+   * Base class for iterative linear solvers.
    *
    * @tparam Derived The derived solver class (CRTP pattern).
    * @tparam VectorType Type of the vector (default: Vector<>).

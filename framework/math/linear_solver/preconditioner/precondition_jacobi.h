@@ -58,7 +58,7 @@ namespace pdes
     if (inv_diag_.size() != src.size())
       throw std::runtime_error(name() + ": dimension mismatch error");
 
-    dst.resize(src.size());
+    dst.reinit(src.size());
     for (size_t i = 0; i < src.size(); ++i)
       dst(i) = inv_diag_[i] * src(i);
   }

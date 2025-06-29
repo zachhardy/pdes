@@ -6,7 +6,7 @@ namespace pdes
   namespace internal
   {
     /**
-     * @brief Computes the inverse of diagonal entries from a square matrix.
+     * Computes the inverse of diagonal entries from a square matrix.
      *
      * This function is used in iterative solvers to construct simple
      * preconditioners based on diagonal scaling. Throws if the matrix is not
@@ -16,8 +16,6 @@ namespace pdes
      * @param matrix A square matrix from which to extract the diagonal.
      * @param label Descriptive label used in exception messages.
      * @return Vector containing 1 / diagonal(i) for each row.
-     * @throws std::invalid_argument if the matrix is not square.
-     * @throws std::runtime_error if any diagonal entry is zero.
      */
     template<typename Number>
     std::vector<Number>

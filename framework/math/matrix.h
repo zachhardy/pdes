@@ -6,7 +6,7 @@
 namespace pdes
 {
   /**
-   * @brief A row-major dense matrix class for linear algebra operations.
+   * A row-major dense matrix class for linear algebra operations.
    *
    * The `Matrix` class represents a 2D array with full access to individual
    * entries and row-wise iterators. It supports initialization from size,
@@ -45,6 +45,18 @@ namespace pdes
     /// Constructs a matrix of size @p m x @p n and copies entries from @p ptr.
     explicit Matrix(size_t m, size_t n, const Number* ptr) : entries_({m, n}, ptr) {}
 
+    Matrix(const Matrix&) = default;
+    Matrix(Matrix&&) noexcept = default;
+
+    Matrix& operator=(const Matrix&) = default;
+    Matrix& operator=(Matrix&&) noexcept = default;
+
+    /// Assigns all entries to @p value.
+    Matrix& operator=(Number value);
+
+    /// Empties the contents and resets size to zero.
+    void clear() noexcept { entries_.clear(); }
+
     /// Returns the number of rows.
     size_t m() const noexcept { return entries_.shape()[0]; }
 
@@ -66,23 +78,29 @@ namespace pdes
     /// Returns true if the matrix is empty.
     bool empty() const noexcept { return size() == 0; }
 
-    /// Returns a reference to the entry at (i, j).
-    Number& operator()(size_t i, size_t j) { return entries_.at(i, j); }
+    /// Reinitializes the matrix to @p m by @p n and set all entries to zero.
+    void reinit(const size_t m, const size_t n) { reinit(m, n, Number(0)); }
 
-    /// Returns the value of the entry at (i, j).
-    Number operator()(size_t i, size_t j) const { return entries_.at(i, j); }
+    /// Reinitializes the matrix to @p m by @p n and sets all entries to @p value.
+    void reinit(size_t m, size_t n, Number value);
+
+    /// Returns a reference to the entry at (@p i, @p j).
+    Number& operator()(const size_t i, const size_t j) { return entries_.at(i, j); }
+
+    /// Returns the value of the entry at (@p i, @p j).
+    Number operator()(const size_t i, const size_t j) const { return entries_.at(i, j); }
 
     /// Returns a pointer to the beginning of row @p i.
-    Number* begin(size_t i) { return entries_.data() + i * n(); }
+    Number* begin(const size_t i) { return entries_.data() + i * n(); }
 
     /// Returns a const pointer to the beginning of row @p i.
-    const Number* begin(size_t i) const { return entries_.data() + i * n(); }
+    const Number* begin(const size_t i) const { return entries_.data() + i * n(); }
 
     /// Returns a pointer to the end of row @p i.
-    Number* end(size_t i) { return entries_.data() + (i + 1) * n(); }
+    Number* end(const size_t i) { return entries_.data() + (i + 1) * n(); }
 
     /// Returns a const pointer to the end of row @p i.
-    const Number* end(size_t i) const { return entries_.data() + (i + 1) * n(); }
+    const Number* end(const size_t i) const { return entries_.data() + (i + 1) * n(); }
 
     /// Returns a pointer to the raw matrix data.
     Number* data() { return entries_.data(); }
@@ -90,50 +108,50 @@ namespace pdes
     /// Returns a const pointer to the raw matrix data.
     const Number* data() const { return entries_.data(); }
 
-    /// Sets the entry at (i, j) to @p value.
-    void set(size_t i, size_t j, Number value) { entries_.at(i, j) = value; }
+    /// Sets the value at entry (@p i, @p j) to @p value, overwriting any existing data.
+    void set(const size_t i, const size_t j, const Number value) { entries_.at(i, j) = value; }
 
     /**
-     * Sets multiple entries using vectors of row indices, column indices, and values.
+     * Sets a dense block of values using row and column index arrays.
+     *
+     * The size of `values` must match the size `rows` and `cols`.
      */
     void set(const std::vector<size_t>& rows,
              const std::vector<size_t>& cols,
              const std::vector<Number>& values);
 
-    /**
-     * Sets multiple entries using raw pointers to row indices, column indices, and values.
-     */
+    /// Sets values[k] to (rows[k], cols[k]) for k in [0, n).
     void set(size_t n,
              const size_t* rows,
              const size_t* cols,
              const Number* values);
 
-    /// Scales all entries by @p a.
-    void scale(Number a);
-
-    /// Scales all entries by @p a in-place.
-    Matrix& operator*=(Number a);
-
-    /// Divides all entries by non-zero @p a in-place.
-    Matrix& operator/=(Number a);
-
-    /// Adds @p value to the entry at (i, j).
+    /// Adds @p value to the entry at (@p i, @p j).
     void add(size_t i, size_t j, Number value) { entries_.at(i, j) += value; }
 
     /**
-     * Adds multiple values to matrix entries using vectors of indices and values.
+     * Sets a dense block of values using row and column index arrays.
+     *
+     * The size of `values` must match the size `rows` and `cols`.
      */
     void add(const std::vector<size_t>& rows,
              const std::vector<size_t>& cols,
              const std::vector<Number>& values);
 
-    /**
-     * Adds multiple values to matrix entries using raw pointers to indices and values.
-     */
+    /// Adds values[k] to (rows[k], cols[k]) for k in [0, n).
     void add(size_t n,
              const size_t* rows,
              const size_t* cols,
              const Number* values);
+
+    /// Scales all values in the matrix by a given @p factor.
+    void scale(Number factor);
+
+    /// Scales all entries by @p factor in-place.
+    Matrix& operator*=(Number factor);
+
+    /// Divides all entries by non-zero @p factor in-place.
+    Matrix& operator/=(Number factor);
 
     /// Adds another matrix.
     void add(const Matrix& other) { add(Number(1), other); }
@@ -159,22 +177,22 @@ namespace pdes
      */
     void vmult(const Vector<Number>& x, Vector<Number>& b, bool add = false) const;
 
-    /// Computes matrix-vector product and adds to destination.
+    /// Adds a matrix-vector product to the destination via b += Ax.
     void vmult_add(const Vector<Number>& x, Vector<Number>& b) const { vmult(x, b, true); }
 
-    /// Returns the matrix-vector product Ax.
+    /// Returns the matrix-vector product b = Ax.
     Vector<Number> vmult(const Vector<Number>& x) const;
 
-    /// Returns the matrix-vector product Ax.
+    /// Returns the matrix-vector product b = Ax.
     Vector<Number> operator*(const Vector<Number>& x) const;
 
-    /// Returns the matrix-matrix product AB.
+    /// Returns the matrix-matrix product C = AB.
     Matrix mmult(const Matrix& B) const;
 
-    /// Returns the matrix-matrix product AB.
+    /// Returns the matrix-matrix product C = AB.
     Matrix operator*(const Matrix& B) const;
 
-    /// Computes r = Ax - b.
+    /// Computes the residual r = Ax - b.
     void residual(const Vector<Number>& x,
                   const Vector<Number>& b,
                   Vector<Number>& r) const;
@@ -197,6 +215,22 @@ namespace pdes
   };
 
   /* -------------------- member functions --------------------*/
+
+  template<typename Number>
+  Matrix<Number>&
+  Matrix<Number>::operator=(const Number value)
+  {
+    entries_ = value;
+    return *this;
+  }
+
+  template<typename Number>
+  void
+  Matrix<Number>::reinit(const size_t m, const size_t n, const Number value)
+  {
+    entries_.reshape({m, n});
+    entries_.set(value);
+  }
 
   template<typename Number>
   void
@@ -225,33 +259,6 @@ namespace pdes
 
   template<typename Number>
   void
-  Matrix<Number>::scale(const Number a)
-  {
-    auto func = [a](Number x) { return a * x; };
-    std::transform(entries_.begin(), entries_.end(), entries_.begin(), func);
-  }
-
-  template<typename Number>
-  Matrix<Number>&
-  Matrix<Number>::operator*=(const Number a)
-  {
-    scale(a);
-    return *this;
-  }
-
-  template<typename Number>
-  Matrix<Number>&
-  Matrix<Number>::operator/=(Number a)
-  {
-    if (a == Number(0))
-      throw std::invalid_argument("Division by zero error.");
-
-    scale(Number(1) / a);
-    return *this;
-  }
-
-  template<typename Number>
-  void
   Matrix<Number>::add(const std::vector<size_t>& rows,
                       const std::vector<size_t>& cols,
                       const std::vector<Number>& values)
@@ -273,6 +280,33 @@ namespace pdes
   {
     for (size_t i = 0; i < n; ++i)
       add(rows[i], cols[i], values[i]);
+  }
+
+  template<typename Number>
+  void
+  Matrix<Number>::scale(const Number factor)
+  {
+    auto func = [factor](Number x) { return factor * x; };
+    std::transform(entries_.begin(), entries_.end(), entries_.begin(), func);
+  }
+
+  template<typename Number>
+  Matrix<Number>&
+  Matrix<Number>::operator*=(const Number factor)
+  {
+    scale(factor);
+    return *this;
+  }
+
+  template<typename Number>
+  Matrix<Number>&
+  Matrix<Number>::operator/=(Number factor)
+  {
+    if (factor == Number(0))
+      throw std::invalid_argument("Division by zero error.");
+
+    scale(Number(1) / factor);
+    return *this;
   }
 
   template<typename Number>
@@ -374,7 +408,6 @@ namespace pdes
     return mmult(B);
   }
 
-
   template<typename Number>
   void
   Matrix<Number>::residual(const Vector<Number>& x,
@@ -468,7 +501,7 @@ namespace pdes
   operator*(const Matrix<Number>& A, const Number c)
   {
     Matrix mat(A);
-    mat.scale(c);
+    mat *= c;
     return mat;
   }
 
@@ -477,6 +510,15 @@ namespace pdes
   operator*(const Number c, const Matrix<Number>& A)
   {
     return A * c;
+  }
+
+  template<typename Number>
+  Matrix<Number>
+  operator/(const Matrix<Number>& A, const Number c)
+  {
+    Matrix mat(A);
+    mat /= c;
+    return mat;
   }
 
   template<typename Number>
@@ -514,17 +556,17 @@ namespace pdes
   }
 
   template<typename Number>
-  Matrix<Number>
-  mmult(const Matrix<Number>& A, const Matrix<Number>& B)
-  {
-    return A.mmult(B);
-  }
-
-  template<typename Number>
   Vector<Number>
   operator*(const Matrix<Number>& A, const Vector<Number>& x)
   {
     return A.vmult(x);
+  }
+
+  template<typename Number>
+  Matrix<Number>
+  mmult(const Matrix<Number>& A, const Matrix<Number>& B)
+  {
+    return A.mmult(B);
   }
 
   template<typename Number>

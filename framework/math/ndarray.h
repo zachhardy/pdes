@@ -20,7 +20,7 @@ namespace pdes
   }
 
   /**
-   * @brief A statically ranked, dynamically sized n-dimensional array.
+   * A statically ranked, dynamically sized n-dimensional array.
    *
    * The `NDArray` class provides a flexible container for multidimensional
    * numerical data with compile-time rank and runtime shape. It supports
