@@ -9,26 +9,29 @@ namespace pdes
    * SSOR preconditioner:
    * Applies z ≈ A⁻¹ r via a forward + backward sweep.
    */
-  template<typename Number = double>
-  class PreconditionSSOR final : public Preconditioner<Number>
+  template<typename MatrixType = Matrix<>>
+  class PreconditionSSOR
   {
   public:
-    explicit PreconditionSSOR(const Matrix<Number>* A, Number omega = 1.3);
+    using value_type = typename MatrixType::value_type;
 
-    void vmult(const Vector<Number>& src, Vector<Number>& dst) const override;
+    explicit PreconditionSSOR(const MatrixType* A, value_type omega = 1.3);
 
-    std::string name() const override { return "PreconditionSSOR"; }
+    template<typename VectorType = Vector<>>
+    void vmult(const VectorType& src, VectorType& dst) const;
+
+    static std::string name() { return "PreconditionSSOR"; }
 
   private:
-    const Matrix<Number>* A_ = nullptr;
-    Vector<Number> inv_diag_;
-    Number omega_;
+    const MatrixType* A_ = nullptr;
+    std::vector<value_type> inv_diag_;
+    value_type omega_;
   };
 
   /*-------------------- inline functions --------------------*/
 
-  template<typename Number>
-  PreconditionSSOR<Number>::PreconditionSSOR(const Matrix<Number>* A, const Number omega)
+  template<typename MatrixType>
+  PreconditionSSOR<MatrixType>::PreconditionSSOR(const MatrixType* A, const value_type omega)
     : A_(A),
       omega_(omega)
   {
@@ -39,9 +42,10 @@ namespace pdes
     inv_diag_ = internal::extract_inv_diagonal(*A_, name());
   }
 
-  template<typename Number>
+  template<typename MatrixType>
+  template<typename VectorType>
   void
-  PreconditionSSOR<Number>::vmult(const Vector<Number>& src, Vector<Number>& dst) const
+  PreconditionSSOR<MatrixType>::vmult(const VectorType& src, VectorType& dst) const
   {
     if (not A_)
       throw std::runtime_error(name() + " not initialized");
@@ -49,14 +53,14 @@ namespace pdes
       throw std::runtime_error(name() + ": size mismatch");
 
     const auto n = src.size();
-    Vector<Number> y(n, Number(0));
-    dst.resize(n, Number(0));
+    Vector<value_type> y(n, value_type(0));
+    dst.resize(n, value_type(0));
 
     // Forward solve: (D + \omega L) y = r
     for (size_t i = 0; i < n; ++i)
     {
-      const Number* row = A_->begin(i);
-      Number sum = 0;
+      const value_type* row = A_->begin(i);
+      value_type sum = 0;
       for (size_t j = 0; j < i; ++j)
         sum += row[j] * y(j); // lower triangle only
 
@@ -66,7 +70,7 @@ namespace pdes
     // Backward solve: (D + \omega L)^T z = D y
     for (size_t i = n; i-- > 0;)
     {
-      Number sum = 0;
+      value_type sum = 0;
       const auto row = A_->begin(i);
       for (size_t j = i + 1; j < n; ++j)
         sum += row[j] * dst(j); // upper triangle of transpose(L)

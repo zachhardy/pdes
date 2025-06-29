@@ -8,16 +8,17 @@ namespace pdes
    * Gauss-Seidel iterative solver for Ax = b.
    * Templated on scalar type (default = types::real).
    */
-  template<typename Number = types::real>
-  class GaussSeidelSolver final : public SORSolver<Number>
+  template<typename VectorType = Vector<>>
+  class GaussSeidelSolver final : public SORSolver<VectorType>
   {
   public:
-    using Result = typename LinearSolver<Number>::Result;
+    using value_type = typename VectorType::value_type;
+    using Result = typename LinearSolver<GaussSeidelSolver, VectorType>::Result;
 
     GaussSeidelSolver() = default;
 
     explicit GaussSeidelSolver(SolverControl* control)
-      : SORSolver<Number>(control, Number(1))
+      : SORSolver<VectorType>(control, value_type(1))
     {}
 
     std::string name() const override { return "GaussSeidelSolver"; }

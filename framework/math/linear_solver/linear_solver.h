@@ -11,14 +11,14 @@ namespace pdes
   /**
    * A base class for iterative linear solvers.
    */
-  template<typename Number = types::real>
+  template<typename Derived, typename VectorType = Vector<>>
   class LinearSolver
   {
   public:
+    using value_type = typename VectorType::value_type;
     using Result = SolverControl::Result;
 
     LinearSolver() = default;
-
     explicit LinearSolver(SolverControl* control);
 
     virtual ~LinearSolver() = default;
@@ -27,64 +27,61 @@ namespace pdes
 
     void set_logger(const Logger& logger) { logger_ = &logger; }
 
-    Result solve(const Matrix<Number>& A,
-                 const Vector<Number>& b,
-                 Vector<Number>& x) const;
+    template<typename MatrixType>
+    Result solve(const MatrixType& A,
+                 const VectorType& b,
+                 VectorType& x) const;
 
-    Result solve(const Matrix<Number>& A,
-                 const Vector<Number>& b,
-                 Vector<Number>& x,
-                 const Preconditioner<Number>& M) const;
+    template<typename MatrixType, typename PreconditionerType>
+    Result solve(const MatrixType& A,
+                 const VectorType& b,
+                 VectorType& x,
+                 const PreconditionerType& M) const;
 
   protected:
-    void log_iter(unsigned int iter, Number residual_norm) const;
+    void log_iter(unsigned int iter, value_type residual_norm) const;
     void log_summary(const Result& result) const;
 
-  private:
-    virtual Result _solve(const Matrix<Number>& A,
-                          const Vector<Number>& b,
-                          Vector<Number>& x,
-                          const Preconditioner<Number>& M) const = 0;
-
-  protected:
     SolverControl* control_;
     const Logger* logger_ = &Logger::default_logger();
   };
 
   /*-------------------- inline functions --------------------*/
 
-  template<typename Number>
-  LinearSolver<Number>::LinearSolver(SolverControl* control)
+  template<typename Derived, typename VectorType>
+  LinearSolver<Derived, VectorType>::LinearSolver(SolverControl* control)
     : control_(control)
   {
-    static_assert(std::is_floating_point_v<Number>,
+    static_assert(std::is_floating_point_v<value_type>,
                   "Number must be a floating point type (e.g., float, double)");
   }
 
-  template<typename Number>
-  typename LinearSolver<Number>::Result
-  LinearSolver<Number>::solve(const Matrix<Number>& A,
-                              const Vector<Number>& b,
-                              Vector<Number>& x) const
+  template<typename Derived, typename VectorType>
+  template<typename MatrixType>
+  typename LinearSolver<Derived, VectorType>::Result
+  LinearSolver<Derived, VectorType>::solve(const MatrixType& A,
+                                           const VectorType& b,
+                                           VectorType& x) const
   {
-    PreconditionIdentity<Number> identity;
+    PreconditionIdentity identity;
     return solve(A, b, x, identity);
   }
 
-  template<typename Number>
-  typename LinearSolver<Number>::Result
-  LinearSolver<Number>::solve(const Matrix<Number>& A,
-                              const Vector<Number>& b,
-                              Vector<Number>& x,
-                              const Preconditioner<Number>& M) const
+  template<typename Derived, typename VectorType>
+  template<typename MatrixType, typename PreconditionerType>
+  typename LinearSolver<Derived, VectorType>::Result
+  LinearSolver<Derived, VectorType>::solve(const MatrixType& A,
+                                           const VectorType& b,
+                                           VectorType& x,
+                                           const PreconditionerType& M) const
   {
-    return _solve(A, b, x, M);
+    return static_cast<const Derived *>(this)->solve(A, b, x, M);
   }
 
-  template<typename Number>
+  template<typename Derived, typename VectorType>
   void
-  LinearSolver<Number>::log_iter(const unsigned int iter,
-                                 const Number residual_norm) const
+  LinearSolver<Derived, VectorType>::log_iter(const unsigned int iter,
+                                              const value_type residual_norm) const
   {
     if (logger_)
       logger_->iter()
@@ -92,9 +89,9 @@ namespace pdes
           << ", residual = " << residual_norm;
   }
 
-  template<typename Number>
+  template<typename Derived, typename VectorType>
   void
-  LinearSolver<Number>::log_summary(const Result& result) const
+  LinearSolver<Derived, VectorType>::log_summary(const Result& result) const
   {
     if (not logger_)
       return;

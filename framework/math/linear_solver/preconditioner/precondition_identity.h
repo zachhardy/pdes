@@ -3,20 +3,20 @@
 
 namespace pdes
 {
-  template<typename Number = types::real>
-  class PreconditionIdentity final : public Preconditioner<Number>
+  class PreconditionIdentity
   {
   public:
-    void vmult(const Vector<Number>& src, Vector<Number>& dst) const override;
+    template<typename VectorType>
+    static void vmult(const VectorType& src, VectorType& dst);
 
-    std::string name() const override { return "PreconditionIdentity"; }
+    static std::string name() { return "PreconditionIdentity"; }
   };
 
   /*-------------------- inline functions --------------------*/
 
-  template<typename Number>
+  template<typename VectorType>
   void
-  PreconditionIdentity<Number>::vmult(const Vector<Number>& src, Vector<Number>& dst) const
+  PreconditionIdentity::vmult(const VectorType& src, VectorType& dst)
   {
     dst = src;
   }

@@ -11,50 +11,50 @@ namespace pdes
    * Symmetric Successive Over-Relaxation (SSOR) solver for Ax = b.
    * Performs a forward and backward sweep per iteration.
    */
-  template<typename Number = types::real>
-  class SSORSolver final : public LinearSolver<Number>
+  template<typename VectorType = Vector<>>
+  class SSORSolver final : public LinearSolver<SSORSolver<VectorType>, VectorType>
   {
   public:
-    using Result = typename LinearSolver<Number>::Result;
+    using value_type = typename VectorType::value_type;
+    using Result = typename LinearSolver<SSORSolver, VectorType>::Result;
 
-    explicit SSORSolver(SolverControl* control);
-    explicit SSORSolver(SolverControl* control, Number omega);
+    explicit SSORSolver(SolverControl* control)
+      : LinearSolver<SSORSolver, VectorType>(control)
+    {}
+
+    explicit SSORSolver(SolverControl* control, value_type omega);
 
     std::string name() const override { return "SSORSolver"; }
 
-  private:
-    Result _solve(const Matrix<Number>& A,
-                  const Vector<Number>& b,
-                  Vector<Number>& x,
-                  const Preconditioner<Number>&) const override;
+    using LinearSolver<SSORSolver, VectorType>::solve;
 
-    Number omega_ = Number(1.3);
+    template<typename MatrixType, typename PreconditionerType>
+    Result solve(const MatrixType& A,
+                 const VectorType& b,
+                 VectorType& x,
+                 const PreconditionerType&) const;
+
+    value_type omega_ = value_type(1.3);
   };
 
   /*-------------------- inline functions --------------------*/
 
-  template<typename Number>
-  SSORSolver<Number>::SSORSolver(SolverControl* control)
-    : LinearSolver<Number>(control)
-  {
-  }
-
-  template<typename Number>
-  SSORSolver<Number>::SSORSolver(SolverControl* control, const Number omega)
-    : LinearSolver<Number>(control),
+  template<typename VectorType>
+  SSORSolver<VectorType>::SSORSolver(SolverControl* control, const value_type omega)
+    : LinearSolver<SSORSolver, VectorType>(control),
       omega_(omega)
   {
     if (omega_ <= 0.0 || omega_ >= 2.0)
       throw std::invalid_argument("SSOR relaxation parameter omega must be in (0, 2)");
   }
 
-
-  template<typename Number>
-  typename SSORSolver<Number>::Result
-  SSORSolver<Number>::_solve(const Matrix<Number>& A,
-                             const Vector<Number>& b,
-                             Vector<Number>& x,
-                             const Preconditioner<Number>&) const
+  template<typename VectorType>
+  template<typename MatrixType, typename PreconditionerType>
+  typename SSORSolver<VectorType>::Result
+  SSORSolver<VectorType>::solve(const MatrixType& A,
+                                const VectorType& b,
+                                VectorType& x,
+                                const PreconditionerType&) const
   {
     auto& control = *this->control_;
     const auto inv_diag = internal::extract_inv_diagonal(A, name());
@@ -65,7 +65,7 @@ namespace pdes
       // Forward sweep
       for (size_t i = 0; i < n; ++i)
       {
-        Number sum = 0;
+        value_type sum = 0;
         const auto row = A.begin(i);
         for (size_t j = 0; j < i; ++j)
           sum += row[j] * x(j);
@@ -77,7 +77,7 @@ namespace pdes
       // Backward sweep
       for (size_t i = n; i-- > 0;)
       {
-        Number sum = 0;
+        value_type sum = 0;
         const auto row = A.begin(i);
         for (size_t j = 0; j < i; ++j)
           sum += row[j] * x(j);

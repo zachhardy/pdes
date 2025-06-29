@@ -10,41 +10,45 @@ namespace pdes
    * A simple Jacobi iterative solver for Ax = b.
    * Templated on scalar type (default = types::real).
    */
-  template<typename Number = types::real>
-  class JacobiSolver final : public LinearSolver<Number>
+  template<typename VectorType = Vector<>>
+  class JacobiSolver final : public LinearSolver<JacobiSolver<VectorType>, VectorType>
   {
   public:
-    using Result = typename LinearSolver<Number>::Result;
+    using value_type = typename VectorType::value_type;
+    using Result = typename LinearSolver<JacobiSolver, VectorType>::Result;
 
     JacobiSolver() = default;
 
     explicit JacobiSolver(SolverControl* control)
-      : LinearSolver<Number>(control)
+      : LinearSolver<JacobiSolver, VectorType>(control)
     {}
 
     std::string name() const override { return "JacobiSolver"; }
 
-  private:
-    Result _solve(const Matrix<Number>& A,
-                  const Vector<Number>& b,
-                  Vector<Number>& x,
-                  const Preconditioner<Number>&) const override;
+    using LinearSolver<JacobiSolver, VectorType>::solve;
+
+    template<typename MatrixType, typename PreconditionerType>
+    Result solve(const MatrixType& A,
+                 const VectorType& b,
+                 VectorType& x,
+                 const PreconditionerType&) const;
   };
 
   /*-------------------- inline functions --------------------*/
 
-  template<typename Number>
-  typename JacobiSolver<Number>::Result
-  JacobiSolver<Number>::_solve(const Matrix<Number>& A,
-                               const Vector<Number>& b,
-                               Vector<Number>& x,
-                               const Preconditioner<Number>&) const
+  template<typename VectorType>
+  template<typename MatrixType, typename PreconditionerType>
+  typename JacobiSolver<VectorType>::Result
+  JacobiSolver<VectorType>::solve(const MatrixType& A,
+                                  const VectorType& b,
+                                  VectorType& x,
+                                  const PreconditionerType&) const
   {
     auto& control = *this->control_;
     const auto inv_diag = internal::extract_inv_diagonal(A, name());
 
     const auto n = b.size();
-    Vector<Number> x_old(n, Number(0));
+    VectorType x_old(n, value_type(0));
     for (unsigned int iter = 0;; ++iter)
     {
       x_old = x;
@@ -55,8 +59,8 @@ namespace pdes
 #endif
       for (size_t i = 0; i < n; ++i)
       {
-        Number sum = 0;
-        const Number* row = A.begin(i);
+        value_type sum = 0;
+        const value_type* row = A.begin(i);
         for (size_t j = 0; j < n; ++j)
           if (j != i)
             sum += row[j] * x_old(j);

@@ -6,26 +6,29 @@
 
 namespace pdes
 {
-  template<typename Number = double>
-  class PreconditionJacobi final : public Preconditioner<Number>
+  template<typename MatrixType = Matrix<>>
+  class PreconditionJacobi
   {
   public:
+    using value_type = typename MatrixType::value_type;
+
     PreconditionJacobi() = default;
-    explicit PreconditionJacobi(const Matrix<>* A);
+    explicit PreconditionJacobi(const MatrixType* A);
 
-    void vmult(const Vector<Number>& src, Vector<Number>& dst) const override;
+    template<typename VectorType>
+    void vmult(const VectorType& src, VectorType& dst) const;
 
-    std::string name() const override { return "PreconditionJacobi"; }
+    static std::string name() { return "PreconditionJacobi"; }
 
   private:
-    const Matrix<Number>* A_;
-    Vector<Number> inv_diag_;
+    const MatrixType* A_;
+    std::vector<value_type> inv_diag_;
   };
 
   /*-------------------- inline functions --------------------*/
 
-  template<typename Number>
-  PreconditionJacobi<Number>::PreconditionJacobi(const Matrix<>* A)
+  template<typename MatrixType>
+  PreconditionJacobi<MatrixType>::PreconditionJacobi(const MatrixType* A)
     : A_(A)
   {
     if (not A_->is_square())
@@ -33,9 +36,10 @@ namespace pdes
     inv_diag_ = internal::extract_inv_diagonal(*A_, name());
   }
 
-  template<typename Number>
+  template<typename MatrixType>
+  template<typename VectorType>
   void
-  PreconditionJacobi<Number>::vmult(const Vector<Number>& src, Vector<Number>& dst) const
+  PreconditionJacobi<MatrixType>::vmult(const VectorType& src, VectorType& dst) const
   {
     if (not A_)
       throw std::runtime_error(name() + " not initialized");

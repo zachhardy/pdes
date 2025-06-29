@@ -11,41 +11,45 @@ namespace pdes
    * Conjugate Gradient (CG) solver for symmetric positive-definite matrices.
    * Templated on scalar type (default = types::real).
    */
-  template<typename Number = types::real>
-  class CGSolver final : public LinearSolver<Number>
+  template<typename VectorType = Vector<>>
+  class CGSolver final : public LinearSolver<CGSolver<VectorType>, VectorType>
   {
   public:
-    using Result = typename LinearSolver<Number>::Result;
+    using value_type = typename VectorType::value_type;
+    using Result = typename LinearSolver<CGSolver, VectorType>::Result;
 
     explicit CGSolver(SolverControl* control)
-      : LinearSolver<Number>(control)
+      : LinearSolver<CGSolver, VectorType>(control)
     {}
 
     std::string name() const override { return "ConjugateGradientSolver"; }
 
-  private:
-    Result _solve(const Matrix<Number>& A,
-                  const Vector<Number>& b,
-                  Vector<Number>& x,
-                  const Preconditioner<Number>& M) const override;
+    using LinearSolver<CGSolver, VectorType>::solve;
+
+    template<typename MatrixType, typename PreconditionerType>
+    Result solve(const MatrixType& A,
+                 const VectorType& b,
+                 VectorType& x,
+                 const PreconditionerType& M) const;
   };
 
-  template<typename Number>
-  typename CGSolver<Number>::Result
-  CGSolver<Number>::_solve(const Matrix<Number>& A,
-                           const Vector<Number>& b,
-                           Vector<Number>& x,
-                           const Preconditioner<Number>& M) const
+  template<typename VectorType>
+  template<typename MatrixType, typename PreconditionerType>
+  typename CGSolver<VectorType>::Result
+  CGSolver<VectorType>::solve(const MatrixType& A,
+                              const VectorType& b,
+                              VectorType& x,
+                              const PreconditionerType& M) const
   {
     auto& control = *this->control_;
 
     const size_t n = b.size();
-    Vector<Number> r(n), z(n), p(n), Ap(n);
+    Vector<value_type> r(n), z(n), p(n), Ap(n);
 
     // r0 = b - Ax0
     A.vmult(x, Ap);
     r = b;
-    r.add(Number(-1), Ap);
+    r.add(value_type(-1), Ap);
 
     // z0 = Minv r0
     M.vmult(r, z);
@@ -72,7 +76,7 @@ namespace pdes
       }
 
       const auto beta = rz_new / rz_old;
-      p.sadd(beta, Number(1), z); // p_{k+1} = z_{k+1} + \beta_k * p_k
+      p.sadd(beta, value_type(1), z); // p_{k+1} = z_{k+1} + \beta_k * p_k
       rz_old = rz_new;
     }
   }

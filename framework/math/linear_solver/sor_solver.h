@@ -10,49 +10,50 @@ namespace pdes
    * Successive Over-Relaxation (SOR) iterative solver for Ax = b.
    * Templated on scalar type (default = types::real).
    */
-  template<typename Number = types::real>
-  class SORSolver : public LinearSolver<Number>
+  template<typename VectorType = Vector<>>
+  class SORSolver : public LinearSolver<SORSolver<VectorType>, VectorType>
   {
   public:
-    using Result = typename LinearSolver<Number>::Result;
+    using value_type = typename VectorType::value_type;
+    using Result = typename LinearSolver<SORSolver, VectorType>::Result;
 
-    explicit SORSolver(SolverControl* control);
-    explicit SORSolver(SolverControl* control, Number omega);
+    explicit SORSolver(SolverControl* control)
+      : LinearSolver<SORSolver, VectorType>(control)
+    {}
+
+    explicit SORSolver(SolverControl* control, value_type omega);
 
     std::string name() const override { return "SORSolver"; }
 
-  private:
-    Result _solve(const Matrix<Number>& A,
-                  const Vector<Number>& b,
-                  Vector<Number>& x,
-                  const Preconditioner<Number>&) const override;
+    using LinearSolver<SORSolver, VectorType>::solve;
 
-    Number omega_ = Number(1.3);
+    template<typename MatrixType, typename PreconditionerType>
+    Result solve(const MatrixType& A,
+                 const VectorType& b,
+                 VectorType& x,
+                 const PreconditionerType&) const;
+
+    value_type omega_ = value_type(1.3);
   };
 
   /*-------------------- inline functions --------------------*/
 
-  template<typename Number>
-  SORSolver<Number>::SORSolver(SolverControl* control)
-    : LinearSolver<Number>(control)
-  {
-  }
-
-  template<typename Number>
-  SORSolver<Number>::SORSolver(SolverControl* control, const Number omega)
-    : LinearSolver<Number>(control),
+  template<typename VectorType>
+  SORSolver<VectorType>::SORSolver(SolverControl* control, const value_type omega)
+    : LinearSolver<SORSolver, VectorType>(control),
       omega_(omega)
   {
     if (omega_ <= 0.0 || omega_ >= 2.0)
       throw std::invalid_argument("SOR relaxation parameter omega must be in (0, 2)");
   }
 
-  template<typename Number>
-  typename SORSolver<Number>::Result
-  SORSolver<Number>::_solve(const Matrix<Number>& A,
-                            const Vector<Number>& b,
-                            Vector<Number>& x,
-                            const Preconditioner<Number>&) const
+  template<typename VectorType>
+  template<typename MatrixType, typename PreconditionerType>
+  typename SORSolver<VectorType>::Result
+  SORSolver<VectorType>::solve(const MatrixType& A,
+                               const VectorType& b,
+                               VectorType& x,
+                               const PreconditionerType&) const
   {
     auto& control = *this->control_;
     const auto inv_diag = internal::extract_inv_diagonal(A, name());
@@ -62,8 +63,8 @@ namespace pdes
     {
       for (size_t i = 0; i < n; ++i)
       {
-        Number sum = 0;
-        const Number* row = A.begin(i);
+        value_type sum = 0;
+        const value_type* row = A.begin(i);
         for (size_t j = 0; j < i; ++j)
           sum += row[j] * x(j);
         for (size_t j = i + 1; j < n; ++j)
