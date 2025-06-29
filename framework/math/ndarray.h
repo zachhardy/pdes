@@ -10,34 +10,30 @@ namespace pdes
 {
   namespace internal
   {
+    /// Converts a std::vector to a std::array with runtime rank checking.
     template<size_t rank>
-    std::array<size_t, rank>
-    to_array(const std::vector<size_t>& shape)
-    {
-      if (shape.size() != rank)
-        throw std::invalid_argument("Shape size does not match NDArray rank.");
-      std::array<size_t, rank> result;
-      std::copy_n(shape.begin(), rank, result.begin());
-      return result;
-    }
+    std::array<size_t, rank> to_array(const std::vector<size_t>& shape);
 
+    /// Converts an initializer list to a std::array with runtime rank checking.
     template<size_t rank>
-    std::array<size_t, rank>
-    to_array(std::initializer_list<size_t> shape)
-    {
-      if (shape.size() != rank)
-        throw std::invalid_argument("Shape size does not match NDArray rank.");
-      std::array<size_t, rank> result;
-      std::copy(shape.begin(), shape.end(), result.begin());
-      return result;
-    }
+    std::array<size_t, rank> to_array(std::initializer_list<size_t> shape);
   }
 
   /**
-   * Implementation of an arbitrary rank array.
+   * @brief A statically ranked, dynamically sized n-dimensional array.
    *
-   * @tparam rank The number of dimensions in the NDArray.
-   * @tparam Number The underlying datatype of the NDArray data.
+   * The `NDArray` class provides a flexible container for multidimensional
+   * numerical data with compile-time rank and runtime shape. It supports
+   * value initialization, raw data construction, reshaping, and both unchecked
+   * and bounds-checked element access.
+   *
+   * Internally, data is stored in a contiguous flat array using row-major
+   * ordering, with stride calculations automatically handled for efficient indexing.
+   * The class is optimized for numerical computations and is used as the
+   * foundational storage structure for `Vector` and `Matrix`.
+   *
+   * @tparam rank The number of dimensions (must be known at compile time).
+   * @tparam Number The scalar type of the array entries (must be floating point).
    */
   template<int rank, typename Number = types::real>
   class NDArray
@@ -45,92 +41,93 @@ namespace pdes
   public:
     using value_type = Number;
 
-    /// Constructs an empty NDArray.
+    /// Default-constructs an empty array.
     NDArray() noexcept;
 
-    /// Constructs an NDArray from a shape.
+    /// Constructs from a shape.
     explicit NDArray(const std::array<size_t, rank>& shape);
     explicit NDArray(const std::vector<size_t>& shape);
     NDArray(std::initializer_list<size_t> shape);
 
-    /// Constructs an NDArray from a shape ad set all entries to @p value.
+    /// Constructs from shape and fills all entries with @p value.
     explicit NDArray(const std::array<size_t, rank>& shape, Number value);
     explicit NDArray(const std::vector<size_t>& shape, Number value);
     explicit NDArray(std::initializer_list<size_t> shape, Number value);
 
-    /// Constructs an NDArray from a shape and set the entries with raw data.
+    /// Constructs from shape and fills entries from raw pointer @p ptr.
     explicit NDArray(const std::array<size_t, rank>& shape, const Number* ptr);
     explicit NDArray(const std::vector<size_t>& shape, const Number* ptr);
     explicit NDArray(std::initializer_list<size_t> shape, const Number* ptr);
 
-    /// Constructs an NDArray by copying another.
-    explicit NDArray(const NDArray& other);
-    /// Constructs an NDArray by moving another.
-    explicit NDArray(NDArray&& other) noexcept;
+    /// Copy constructor.
+    NDArray(const NDArray& other);
+    /// Move constructor.
+    NDArray(NDArray&& other) noexcept;
 
-    /// Copies another NDArray into this one.
+    /// Copy assignment.
     NDArray& operator=(const NDArray& other);
-    /// Moves another NDArray into this one.
+    /// Move assignment.
     NDArray& operator=(NDArray&& other) noexcept;
 
-    /// Sets the entire NDArray to a number.
+    /// Fills all entries with @p value.
     NDArray& operator=(Number value);
 
-    /// Reshapes an NDArray clearing existing data.
+    /// Reshapes the array and clears existing entries.
     void reshape(const std::array<size_t, rank>& shape);
     void reshape(const std::vector<size_t>& shape);
     void reshape(std::initializer_list<size_t> shape);
 
-    /// Sets all entries to the given value.
+    /// Sets all entries to @p value.
     void set(Number value);
 
-    /// Clear the contents of the NDArray.
+    /// Clears the shape and entries.
     void clear();
 
-    /// Returns the number of entries in the NDArray.
+    /// Returns the total number of elements.
     size_t size() const noexcept { return size_; }
 
-    /// Returns whether the NDArray is all zero.
+    /// Returns true if all entries are zero.
     bool is_zero() const;
-    /// Returns whether the NDArray is all non-negative.
+
+    /// Returns true if all entries are non-negative.
     bool is_nonnegative() const;
-    /// Returns whether the NDArray is empty.
+
+    /// Returns true if the array is empty.
     bool empty() const noexcept { return size_ == 0; }
 
-    /// Returns the shape of the NDArray.
+    /// Returns the shape of the array.
     const std::array<size_t, rank>& shape() const noexcept { return shape_; }
 
-    /// Returns a reference to the specified entry.
+    /// Returns a reference to the entry at @p indices (no bounds check).
     template<typename... Index>
     Number& operator()(Index... indices) noexcept;
-    /// Returns the value of the specified entry.
+
+    /// Returns the value of the entry at @p indices (no bounds check).
     template<typename... Index>
     Number operator()(Index... indices) const noexcept;
 
-    /// Returns a reference to the specified entry with bounds checking.
+    /// Returns a reference to the entry at @p indices (with bounds checking).
     template<typename... Index>
     Number& at(Index... indices);
-    /// Returns the value of the specified entry with bounds checking.
+
+    /// Returns the value of the entry at @p indices (with bounds checking).
     template<typename... Index>
     Number at(Index... indices) const;
 
-    /// Returns an iterator to the first entry of the NDArray.
+    /// Returns an iterator to the beginning of the data.
     Number* begin() noexcept { return entries_.get(); }
-    /// Returns a constant iterator to the first entry of the NDArray.
     const Number* begin() const noexcept { return entries_.get(); }
 
-    /// Returns an iterator to the end of the NDArray.
+    /// Returns an iterator to the end of the data.
     Number* end() noexcept { return entries_.get() + size_; }
-    /// Returns a constant iterator to the end of the NDArray.
     const Number* end() const noexcept { return entries_.get() + size_; }
 
-    /// Returns a pointer to the raw underlying data.
+    /// Returns a pointer to the data.
     Number* data() noexcept { return entries_.get(); }
-    /// Returns a constant pointer to the raw underlying data.
     const Number* data() const noexcept { return entries_.get(); }
 
   private:
-    /// Compute the linear index from a set of indices.
+    /// Computes the flat index from multidimensional indices.
     template<typename... Index>
     size_t compute_index(Index... indices) const;
 
@@ -141,7 +138,31 @@ namespace pdes
     std::unique_ptr<Number[]> entries_;
   };
 
-  /* -------------------- member functions --------------------*/
+  /*-------------------- internal functions --------------------*/
+
+  template<size_t rank>
+  std::array<size_t, rank>
+  internal::to_array(const std::vector<size_t>& shape)
+  {
+    if (shape.size() != rank)
+      throw std::invalid_argument("Shape size does not match NDArray rank.");
+    std::array<size_t, rank> result;
+    std::copy_n(shape.begin(), rank, result.begin());
+    return result;
+  }
+
+  template<size_t rank>
+  std::array<size_t, rank>
+  internal::to_array(std::initializer_list<size_t> shape)
+  {
+    if (shape.size() != rank)
+      throw std::invalid_argument("Shape size does not match NDArray rank.");
+    std::array<size_t, rank> result;
+    std::copy(shape.begin(), shape.end(), result.begin());
+    return result;
+  }
+
+  /*-------------------- member functions --------------------*/
 
   template<int rank, typename Number>
   NDArray<rank, Number>::NDArray() noexcept

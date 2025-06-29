@@ -5,8 +5,12 @@
 namespace pdes
 {
   /**
-   * Computes an incomplete LU factorization with no fill-in.
-   * Solves z = Ainv r via forward and backward substitution.
+   * @brief Incomplete LU (ILU(0)) preconditioner.
+   *
+   * Performs an incomplete LU factorization of the matrix with zero fill-in
+   * and applies it via forward and backward substitution.
+   *
+   * @tparam MatrixType Type of matrix to precondition.
    */
   template<typename MatrixType>
   class PreconditionILU
@@ -14,11 +18,14 @@ namespace pdes
   public:
     using value_type = typename MatrixType::value_type;
 
+    /// Constructs and factorizes the matrix A.
     explicit PreconditionILU(const MatrixType* A);
 
+    /// Applies the preconditioner: solves LU z = r.
     template<typename VectorType>
     void vmult(const VectorType& src, VectorType& dst) const;
 
+    /// Returns the name of the preconditioner.
     static std::string name() { return "PreconditionILU"; }
 
   private:

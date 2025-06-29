@@ -8,8 +8,15 @@
 namespace pdes
 {
   /**
-   * Symmetric Successive Over-Relaxation (SSOR) solver for Ax = b.
-   * Performs a forward and backward sweep per iteration.
+   * @brief Symmetric Successive Over-Relaxation (SSOR) solver for Ax = b.
+   *
+   * SSOR performs both a forward and backward Gauss-Seidel sweep each iteration,
+   * using a relaxation factor \f$ \omega \in (0, 2) \f$. It can improve convergence
+   * behavior over standard SOR when used as a smoother or preconditioner.
+   *
+   * Requires the matrix to be square and typically performs best on diagonally dominant systems.
+   *
+   * @tparam VectorType The vector type to use (default: Vector<>).
    */
   template<typename VectorType = Vector<>>
   class SSORSolver final : public LinearSolver<SSORSolver<VectorType>, VectorType>
@@ -19,19 +26,33 @@ namespace pdes
     using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
 
+    /// Constructs an SSOR solver with default omega = 1.3.
     explicit SSORSolver(SolverControl* control) : Base(control) {}
+
+    /// Constructs an SSOR solver with specified relaxation factor.
     explicit SSORSolver(SolverControl* control, value_type omega);
 
+    /// Returns the name of the solver.
     std::string name() const override { return "SSORSolver"; }
 
-    using LinearSolver<SSORSolver, VectorType>::solve;
+    using Base::solve;
 
+    /**
+     * Solves Ax = b using SSOR iteration.
+     *
+     * @param A System matrix.
+     * @param b Right-hand side vector.
+     * @param x Solution vector (initial guess and result).
+     * @param M Unused preconditioner (ignored).
+     * @return Solver result with convergence status.
+     */
     template<typename MatrixType, typename PreconditionerType>
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
                  const PreconditionerType&) const;
 
+    /// Relaxation parameter \f$ \omega \in (0, 2) \f$.
     value_type omega_ = value_type(1.3);
   };
 

@@ -7,8 +7,17 @@
 namespace pdes
 {
   /**
-   * Successive Over-Relaxation (SOR) iterative solver for Ax = b.
-   * Templated on scalar type (default = types::real).
+   * @brief Successive Over-Relaxation (SOR) solver for linear systems Ax = b.
+   *
+   * This class implements the SOR method, which generalizes the Gauss-Seidel method
+   * by introducing a relaxation parameter \f$ \omega \in (0, 2) \f$ to accelerate
+   * convergence. A value of \f$ \omega = 1 \f$ recovers Gauss-Seidel, while values
+   * above or below adjust the influence of the current iterate.
+   *
+   * The solver requires the matrix to be square and generally performs best on
+   * diagonally dominant systems.
+   *
+   * @tparam VectorType The vector type to use (default: Vector<>).
    */
   template<typename VectorType = Vector<>>
   class SORSolver : public LinearSolver<SORSolver<VectorType>, VectorType>
@@ -18,19 +27,33 @@ namespace pdes
     using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
 
+    /// Constructs a solver with control and default omega = 1.3.
     explicit SORSolver(SolverControl* control) : Base(control) {}
+
+    /// Constructs a solver with specified relaxation factor.
     explicit SORSolver(SolverControl* control, value_type omega);
 
+    /// Returns the name of the solver.
     std::string name() const override { return "SORSolver"; }
 
-    using LinearSolver<SORSolver, VectorType>::solve;
+    using Base::solve;
 
+    /**
+     * Solves Ax = b using SOR iteration.
+     *
+     * @param A System matrix.
+     * @param b Right-hand side vector.
+     * @param x Solution vector (initial guess and result).
+     * @param M Unused preconditioner (ignored).
+     * @return Solver result with convergence status.
+     */
     template<typename MatrixType, typename PreconditionerType>
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
                  const PreconditionerType&) const;
 
+    /// Relaxation parameter \f$ \omega \in (0, 2) \f$.
     value_type omega_ = value_type(1.3);
   };
 

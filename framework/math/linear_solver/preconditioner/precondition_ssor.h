@@ -5,8 +5,12 @@
 namespace pdes
 {
   /**
-   * SSOR preconditioner:
-   * Applies z ≈ A⁻¹ r via a forward + backward sweep.
+   * @brief Symmetric Successive Over-Relaxation (SSOR) preconditioner.
+   *
+   * Applies one forward and one backward sweep using a relaxation factor \f$ \omega \in (0, 2) \f$.
+   * Approximates the inverse of A for use in iterative solvers.
+   *
+   * @tparam MatrixType Type of matrix to precondition (default: Matrix<>).
    */
   template<typename MatrixType = Matrix<>>
   class PreconditionSSOR
@@ -14,11 +18,14 @@ namespace pdes
   public:
     using value_type = typename MatrixType::value_type;
 
+    /// Constructs the preconditioner using matrix A and relaxation factor omega.
     explicit PreconditionSSOR(const MatrixType* A, value_type omega = 1.3);
 
+    /// Applies the preconditioner: z ≈ A⁻¹ r.
     template<typename VectorType = Vector<>>
     void vmult(const VectorType& src, VectorType& dst) const;
 
+    /// Returns the name of the preconditioner.
     static std::string name() { return "PreconditionSSOR"; }
 
   private:

@@ -5,175 +5,189 @@
 
 namespace pdes
 {
+  /**
+   * @brief A row-major dense matrix class for linear algebra operations.
+   *
+   * The `Matrix` class represents a 2D array with full access to individual
+   * entries and row-wise iterators. It supports initialization from size,
+   * value, or raw data and provides basic operations like addition, scaling,
+   * matrix-vector products, and matrix-matrix multiplication.
+   *
+   * Convenience functions are included for computing residuals, norms, and
+   * sparse-style collective updates using index lists.
+   *
+   * This class is intended for use in solver routines and algorithmic kernels,
+   * with performance and flexibility suitable for general-purpose computation.
+   *
+   * @tparam Number The scalar type of the matrix entries (default: types::real).
+   */
   template<typename Number = types::real>
   class Matrix
   {
   public:
     using value_type = typename NDArray<2, Number>::value_type;
 
+    /// Constructs an empty matrix.
     Matrix() = default;
 
-    /// Constructs a square @p m by @p m matrix set to zero.
-    explicit Matrix(const size_t m)
-      : Matrix(m, m, Number(0)) {}
+    /// Constructs a square matrix of size @p m x @p m with all entries set to zero.
+    explicit Matrix(size_t m) : Matrix(m, m, Number(0)) {}
 
-    /// Constructs an @p m by @p n matrix set to zero.
-    explicit Matrix(const size_t m, const size_t n)
-      : Matrix(m, n, Number(0)) {}
+    /// Constructs a matrix of size @p m x @p n with all entries set to zero.
+    explicit Matrix(size_t m, size_t n) : Matrix(m, n, Number(0)) {}
 
-    /// Constructs an @p m by @p n matrix set to @p value.
-    explicit Matrix(const size_t m, const size_t n, const Number value)
-      : entries_({m, n}, value) {}
+    /// Constructs a matrix of size @p m x @p n with all entries set to @p value.
+    explicit Matrix(size_t m, size_t n, Number value) : entries_({m, n}, value) {}
 
-    /// Constructs an @p m by @p m matrix and set the entries with raw data.
-    explicit Matrix(const size_t m, const Number* ptr)
-      : Matrix(m, m, ptr) {}
+    /// Constructs a square matrix of size @p m x m and copies entries from @p ptr.
+    explicit Matrix(size_t m, const Number* ptr) : Matrix(m, m, ptr) {}
 
-    /// Constructs an @p m by @p n matrix and set the entries with raw data.
-    explicit Matrix(const size_t m, const size_t n, const Number* ptr)
-      : entries_({m, n}, ptr) {}
+    /// Constructs a matrix of size @p m x @p n and copies entries from @p ptr.
+    explicit Matrix(size_t m, size_t n, const Number* ptr) : entries_({m, n}, ptr) {}
 
     /// Returns the number of rows.
     size_t m() const noexcept { return entries_.shape()[0]; }
+
     /// Returns the number of columns.
     size_t n() const noexcept { return entries_.shape()[1]; }
-    /// Returns the size of the Matrix
+
+    /// Returns the total number of entries.
     size_t size() const { return entries_.size(); }
 
-    /// Returns whether the Matrix is all zero.
+    /// Returns true if all entries are zero.
     bool is_zero() const { return entries_.is_zero(); }
-    /// Returns whether the Matrix is all non-negative.
+
+    /// Returns true if all entries are non-negative.
     bool is_nonnegative() const { return entries_.is_nonnegative(); }
-    /// Returns whether the Matrix is square.
+
+    /// Returns true if the matrix is square.
     bool is_square() const { return n() == m(); }
-    /// Returns whether the Matrix is empty.
+
+    /// Returns true if the matrix is empty.
     bool empty() const noexcept { return size() == 0; }
 
-    /// Returns a reference to the entry at row @p i, column @p j.
-    Number& operator()(const size_t i, const size_t j) { return entries_.at(i, j); }
-    /// Returns the value of the entry at row @p i, column @p j.
-    Number operator()(const size_t i, const size_t j) const { return entries_.at(i, j); }
+    /// Returns a reference to the entry at (i, j).
+    Number& operator()(size_t i, size_t j) { return entries_.at(i, j); }
 
-    /// Returns an iterator to the start of row @p i.
-    Number* begin(const size_t i) { return entries_.data() + i * n(); }
-    /// Returns a constant iterator to the start of row @p i.
-    const Number* begin(const size_t i) const { return entries_.data() + i * n(); }
+    /// Returns the value of the entry at (i, j).
+    Number operator()(size_t i, size_t j) const { return entries_.at(i, j); }
 
-    /// Returns an iterator to the end of row @p i.
-    Number* end(const size_t i) { return entries_.data() + (i + 1) * n(); }
-    /// Returns a constant iterator to the end of row @p i.
-    const Number* end(const size_t i) const { return entries_.data() + (i + 1) * n(); }
+    /// Returns a pointer to the beginning of row @p i.
+    Number* begin(size_t i) { return entries_.data() + i * n(); }
+
+    /// Returns a const pointer to the beginning of row @p i.
+    const Number* begin(size_t i) const { return entries_.data() + i * n(); }
+
+    /// Returns a pointer to the end of row @p i.
+    Number* end(size_t i) { return entries_.data() + (i + 1) * n(); }
+
+    /// Returns a const pointer to the end of row @p i.
+    const Number* end(size_t i) const { return entries_.data() + (i + 1) * n(); }
 
     /// Returns a pointer to the raw matrix data.
     Number* data() { return entries_.data(); }
-    /// Returns a constant pointer to the raw matrix data.
+
+    /// Returns a const pointer to the raw matrix data.
     const Number* data() const { return entries_.data(); }
 
-    /// Sets the entry at row @p i, column @p j to @p value.
+    /// Sets the entry at (i, j) to @p value.
     void set(size_t i, size_t j, Number value) { entries_.at(i, j) = value; }
+
     /**
-     * Collectively sets several matrix entries.
-     *
-     * @param rows The row indices of each set operation
-     * @param cols The column indices of each set operation
-     * @param values The values for each set operation.
+     * Sets multiple entries using vectors of row indices, column indices, and values.
      */
     void set(const std::vector<size_t>& rows,
              const std::vector<size_t>& cols,
              const std::vector<Number>& values);
+
     /**
-     * Collectively sets several matrix entries.
-     *
-     * @param n The number of set operations to perform
-     * @param rows A pointer to the first row index of the set operations
-     * @param cols A pointer to the first column index of the set operations
-     * @param values A pointer to the first value of the set operations
+     * Sets multiple entries using raw pointers to row indices, column indices, and values.
      */
     void set(size_t n,
              const size_t* rows,
              const size_t* cols,
              const Number* values);
 
-    /// Multiplies by a scalar value.
+    /// Scales all entries by @p a.
     void scale(Number a);
 
-    /// Multiplies by a scalar value.
-    Matrix& operator *=(Number a);
-    /// Divides by a non-zero scalar value.
+    /// Scales all entries by @p a in-place.
+    Matrix& operator*=(Number a);
+
+    /// Divides all entries by non-zero @p a in-place.
     Matrix& operator/=(Number a);
 
-    /// Adds the given @p value to the row @p i and column @p j.
+    /// Adds @p value to the entry at (i, j).
     void add(size_t i, size_t j, Number value) { entries_.at(i, j) += value; }
+
     /**
-     * Collectively adds to several matrix elements.
-     *
-     * @param rows The row indices of each add operation
-     * @param cols The column indices of each add operation
-     * @param values The values for each add operation.
+     * Adds multiple values to matrix entries using vectors of indices and values.
      */
     void add(const std::vector<size_t>& rows,
              const std::vector<size_t>& cols,
              const std::vector<Number>& values);
+
     /**
-     * Collectively adds to several matrix entries.
-     *
-     * @param n The number of add operations to perform
-     * @param rows A pointer to the first row index of the add operations
-     * @param cols A pointer to the first column index of the add operations
-     * @param values A pointer to the first value of the add operations
+     * Adds multiple values to matrix entries using raw pointers to indices and values.
      */
     void add(size_t n,
              const size_t* rows,
              const size_t* cols,
              const Number* values);
 
-    /// Adds another Matrix.
+    /// Adds another matrix.
     void add(const Matrix& other) { add(Number(1), other); }
-    /// Adds a scaled Matrix.
-    void add(const Number b, const Matrix& other) { sadd(Number(1), b, other); }
-    /// Scales and adds another Matrix.
-    void sadd(const Number a, const Matrix& other) { sadd(a, Number(1), other); }
-    /// Scales and adds a scaled Matrix.
+
+    /// Adds a scaled matrix: this += @p b * other.
+    void add(Number b, const Matrix& other) { sadd(Number(1), b, other); }
+
+    /// Performs scaled addition: this += @p a * other.
+    void sadd(Number a, const Matrix& other) { sadd(a, Number(1), other); }
+
+    /// Performs scaled addition: this = @p a * this + @p b * other.
     void sadd(Number a, Number b, const Matrix& other);
 
-    /// Adds of another Matrix.
+    /// Adds another matrix in-place.
     Matrix& operator+=(const Matrix& other);
-    /// Subtracts of another Matrix.
+
+    /// Subtracts another matrix in-place.
     Matrix& operator-=(const Matrix& other);
 
     /**
-     * Multiplies the Matrix by a Vector, optionally adding the result into
-     * the given destination vector.
-    */
-    void vmult(const Vector<Number>& x,
-               Vector<Number>& b,
-               bool add = false) const;
-    /// Adds a Matrix-Vector product to a destination Vector.
+     * Computes matrix-vector product b = Ax.
+     * If add = true, result is added into existing values in @p b.
+     */
+    void vmult(const Vector<Number>& x, Vector<Number>& b, bool add = false) const;
+
+    /// Computes matrix-vector product and adds to destination.
     void vmult_add(const Vector<Number>& x, Vector<Number>& b) const { vmult(x, b, true); }
-    /// Returns a Matrix-Vector product.
+
+    /// Returns the matrix-vector product Ax.
     Vector<Number> vmult(const Vector<Number>& x) const;
-    /// Returns a Matrix-Vector product.
+
+    /// Returns the matrix-vector product Ax.
     Vector<Number> operator*(const Vector<Number>& x) const;
 
-    /// Returns a Matrix-Matrix product.
+    /// Returns the matrix-matrix product AB.
     Matrix mmult(const Matrix& B) const;
-    /// Returns a Matrix-Matrix product.
+
+    /// Returns the matrix-matrix product AB.
     Matrix operator*(const Matrix& B) const;
 
-    /// Compute the residual r = Ax - b.
+    /// Computes r = Ax - b.
     void residual(const Vector<Number>& x,
                   const Vector<Number>& b,
                   Vector<Number>& r) const;
 
-    /// Returns the residual r = Ax - b.
+    /// Returns the residual vector r = Ax - b.
     Vector<Number> residual(const Vector<Number>& x,
                             const Vector<Number>& b) const;
 
-    /// Compute the residual norm.
+    /// Returns the Euclidean norm of the residual r = Ax - b.
     types::real residual_norm(const Vector<Number>& x,
                               const Vector<Number>& b) const;
 
-    /// Write the matrix as a string.
+    /// Converts the matrix to a string representation.
     std::string to_string(unsigned int precision = 3,
                           bool scientific = false,
                           bool newline = true) const;

@@ -7,8 +7,14 @@
 namespace pdes
 {
   /**
-   * A simple Jacobi iterative solver for Ax = b.
-   * Templated on scalar type (default = types::real).
+   * @brief Jacobi iterative solver for linear systems Ax = b.
+   *
+   * This is a basic stationary method that iteratively updates the solution vector
+   * based on the diagonal components of the system matrix. It is simple to implement
+   * and parallelize, though it typically converges slowly and is only effective for
+   * diagonally dominant or well-conditioned systems.
+   *
+   * @tparam VectorType The vector type to use (default: Vector<>).
    */
   template<typename VectorType = Vector<>>
   class JacobiSolver final : public LinearSolver<JacobiSolver<VectorType>, VectorType>
@@ -18,13 +24,26 @@ namespace pdes
     using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
 
+    /// Constructs an uninitialized Jacobi solver.
     JacobiSolver() = default;
+
+    /// Constructs a Jacobi solver with solver control parameters.
     explicit JacobiSolver(SolverControl* control) : Base(control) {}
 
+    /// Returns the name of the solver.
     std::string name() const override { return "JacobiSolver"; }
 
     using Base::solve;
 
+    /**
+     * Solves Ax = b using Jacobi iteration.
+     *
+     * @param A System matrix.
+     * @param b Right-hand side vector.
+     * @param x Solution vector (initial guess and result).
+     * @param M Unused preconditioner (ignored).
+     * @return Solver result with convergence status.
+     */
     template<typename MatrixType, typename PreconditionerType>
     Result solve(const MatrixType& A,
                  const VectorType& b,

@@ -8,8 +8,14 @@
 namespace pdes
 {
   /**
-   * Conjugate Gradient (CG) solver for symmetric positive-definite matrices.
-   * Templated on scalar type (default = types::real).
+   * @brief Conjugate Gradient (CG) solver for symmetric positive-definite systems.
+   *
+   * This solver implements the classical CG method, an efficient Krylov subspace
+   * technique for solving large sparse symmetric positive-definite systems.
+   *
+   * It supports preconditioning and returns a result struct containing convergence info.
+   *
+   * @tparam VectorType The vector type to use (default: Vector<>).
    */
   template<typename VectorType = Vector<>>
   class CGSolver final : public LinearSolver<CGSolver<VectorType>, VectorType>
@@ -19,12 +25,23 @@ namespace pdes
     using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
 
+    /// Constructs a CG solver with a given convergence controller.
     explicit CGSolver(SolverControl* control) : Base(control) {}
 
+    /// Returns the name of the solver.
     std::string name() const override { return "ConjugateGradientSolver"; }
 
-    using LinearSolver<CGSolver, VectorType>::solve;
+    using Base::solve;
 
+    /**
+     * Solves Ax = b using the CG method with preconditioner M.
+     *
+     * @param A Symmetric positive-definite system matrix.
+     * @param b Right-hand side vector.
+     * @param x Solution vector (initial guess and result).
+     * @param M Preconditioner to apply on residuals.
+     * @return Solver result with convergence status.
+     */
     template<typename MatrixType, typename PreconditionerType>
     Result solve(const MatrixType& A,
                  const VectorType& b,

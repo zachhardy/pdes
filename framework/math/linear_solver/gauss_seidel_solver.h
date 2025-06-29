@@ -5,8 +5,16 @@
 namespace pdes
 {
   /**
-   * Gauss-Seidel iterative solver for Ax = b.
-   * Templated on scalar type (default = types::real).
+   * @brief Gauss-Seidel iterative solver for linear systems Ax = b.
+   *
+   * The Gauss-Seidel method is a variant of the Jacobi iteration that uses updated
+   * values as soon as they are available within each iteration. This often results
+   * in faster convergence compared to Jacobi, particularly for diagonally dominant matrices.
+   *
+   * This class is implemented as a special case of the SORSolver with relaxation
+   * factor omega = 1.0.
+   *
+   * @tparam VectorType The vector type to use (default: Vector<>).
    */
   template<typename VectorType = Vector<>>
   class GaussSeidelSolver final : public SORSolver<VectorType>
@@ -16,9 +24,13 @@ namespace pdes
     using Result = typename Base::Result;
     using value_type = typename VectorType::value_type;
 
+    /// Constructs an uninitialized Gauss-Seidel solver.
     GaussSeidelSolver() = default;
+
+    /// Constructs a Gauss-Seidel solver with solver control.
     explicit GaussSeidelSolver(SolverControl* control) : Base(control, value_type(1)) {}
 
+    /// Returns the name of the solver.
     std::string name() const override { return "GaussSeidelSolver"; }
   };
 }

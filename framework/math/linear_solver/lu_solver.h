@@ -4,22 +4,47 @@
 
 namespace pdes
 {
+  /**
+    * @brief LU factorization solver with partial pivoting.
+    *
+    * This solver performs LU decomposition of a square matrix A such that A = LU,
+    * where L is lower triangular with unit diagonal and U is upper triangular.
+    * It supports in-place solving with optional factor caching.
+    *
+    * @tparam MatrixType The matrix type to factor (default: Matrix<>).
+    */
   template<typename MatrixType = Matrix<>>
   class LUSolver
   {
   public:
     using value_type = typename MatrixType::value_type;
 
+    /// Constructs an empty LU solver.
     LUSolver() = default;
 
+    /// Performs LU factorization on matrix A.
     void factor(const MatrixType& A);
 
+    /**
+     * Solves Ax = b by factoring A and performing forward/backward substitution.
+     *
+     * @param A The system matrix.
+     * @param b The right-hand side.
+     * @param x The resulting solution vector.
+     */
     template<typename VectorType>
     void solve(const MatrixType& A, const VectorType& b, VectorType& x);
 
+    /**
+     * Solves LUx = b using pre-factored matrix.
+     *
+     * @param b The right-hand side.
+     * @param x The resulting solution vector.
+     */
     template<typename VectorType>
     void solve(const VectorType& b, VectorType& x) const;
 
+    /// Returns the name of the solver.
     static std::string name() { return "LUSolver"; }
 
   private:

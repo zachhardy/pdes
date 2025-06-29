@@ -6,26 +6,37 @@
 #include <sstream>
 #include <iomanip>
 
-
 namespace pdes
 {
+  /**
+   * @brief A dynamically sized vector class with basic linear algebra operations.
+   *
+   * This class represents a 1D array of numeric entries and provides essential
+   * vector operations such as scaling, addition, norms, and dot products.
+   *
+   * It supports flexible construction, including default, uniform value, and raw
+   * data initialization. Methods are provided for efficient manipulation,
+   * resizing, and access with both `[]` and `()` operators.
+   *
+   * The `Vector` class is designed to interoperate with matrix solvers and is
+   * used throughout the framework for linear algebra routines.
+   *
+   * @tparam Number The underlying scalar type (default: types::real).
+   */
   template<typename Number = types::real>
   class Vector
   {
   public:
     using value_type = typename NDArray<1, Number>::value_type;
 
-    /// Constructs an empty Vector.
+    /// Constructs an empty vector.
     Vector() = default;
 
-    /// Constructs a Vector with the given @p size set to @p value.
-    explicit Vector(const size_t n, const Number value = 0)
-      : entries_({n}, value)
-    {}
+    /// Constructs a vector of size @p n, with all entries initialized to @p value.
+    explicit Vector(const size_t n, const Number value = 0) : entries_({n}, value) {}
 
-    /// Constructs a size @p n Vector and set the entries with raw data.
-    explicit Vector(const size_t n, const Number* ptr)
-      : entries_({n}, ptr) {}
+    /// Constructs a vector of size @p n by copying entries from raw pointer @p ptr.
+    explicit Vector(const size_t n, const Number* ptr) : entries_({n}, ptr) {}
 
     Vector(const Vector& other) = default;
     Vector(Vector&& other) noexcept = default;
@@ -33,118 +44,140 @@ namespace pdes
     Vector& operator=(const Vector& other) = default;
     Vector& operator=(Vector&& other) noexcept = default;
 
-    /// Sets the Vector to a value.
+    /// Assigns all entries to @p value.
     Vector& operator=(Number value);
 
-    /// Returns the size of the Vector.
+    /// Returns the number of entries in the vector.
     size_t size() const { return entries_.size(); }
 
-    /// Returns whether the Vector is all zero.
+    /// Returns true if all entries are zero.
     bool is_zero() const { return entries_.is_zero(); }
-    /// Returns whether the Vector is all non-negative.
+
+    /// Returns true if all entries are non-negative.
     bool is_nonnegative() const { return entries_.is_nonnegative(); }
-    /// Returns whether the Vector is empty.
+
+    /// Returns true if the vector has no entries.
     bool empty() const noexcept { return size() == 0; }
 
-    /// Resizes the Vector to the given @p size and set all entries to zero.
+    /// Resizes the vector to size @p size and sets all entries to zero.
     void resize(const size_t size) { resize(size, Number(0)); }
-    /// Resizes the Vector to the given @p size and set all entries to @p value.
+
+    /// Resizes the vector to size @p size and sets all entries to @p value.
     void resize(size_t size, Number value);
 
-    /// Returns a reference to the entry @p i.
+    /// Returns a reference to entry @p i.
     Number& operator[](const size_t i) { return entries_.at(i); }
+
     /// Returns the value of entry @p i.
     Number operator[](const size_t i) const { return entries_.at(i); }
 
-    /// Returns a reference to the entry @p i.
+    /// Returns a reference to entry @p i (function-call syntax).
     Number& operator()(const size_t i) { return entries_.at(i); }
-    /// Returns the value of entry @p i.
+
+    /// Returns the value of entry @p i (function-call syntax).
     Number operator()(const size_t i) const { return entries_.at(i); }
 
-    /// Returns an iterator to the start of the Vector.
+    /// Returns a pointer to the beginning of the data.
     Number* begin() { return entries_.begin(); }
-    /// Returns a constant iterator to the start of the Vector.
+
+    /// Returns a const pointer to the beginning of the data.
     const Number* begin() const { return entries_.begin(); }
 
-    /// Returns an iterator to the end of the Vector.
+    /// Returns a pointer to the end of the data.
     Number* end() { return entries_.end(); }
-    /// Returns a constant iterator to the end of the Vector.
+
+    /// Returns a const pointer to the end of the data.
     const Number* end() const { return entries_.end(); }
 
-    /// Sets the entire Vector to @p value.
+    /// Sets all entries to @p value.
     void set(const Number value) { entries_.set(value); }
+
     /// Sets entry @p i to @p value.
     void set(const size_t i, const Number value) { entries_.at(i) = value; }
-    /// Sets the entries with the given @p indices to the given @p values.
+
+    /// Sets entries at @p indices to corresponding @p values.
     void set(const std::vector<size_t>& indices,
              const std::vector<Number>& values);
-    /// Sets @p n entries at the given @p indices to the given @p values.
+
+    /// Sets @p n entries at @p indices to corresponding @p values.
     void set(size_t n, const size_t* indices, const Number* values);
 
-    /// Multiplies by a scalar value.
+    /// Scales all entries by @p a.
     void scale(Number a);
 
-    /// Multiplies by a scalar value.
-    Vector& operator *=(Number a);
-    /// Divides by a non-zero scalar value.
+    /// Scales all entries by @p a in-place.
+    Vector& operator*=(Number a);
+
+    /// Divides all entries by non-zero @p a in-place.
     Vector& operator/=(Number a);
 
-    /// Adds the given @p value to all entries.
+    /// Adds @p value to all entries.
     void add(Number value);
-    /// Adds the given @p value to entry @p i.
+
+    /// Adds @p value to entry @p i.
     void add(const size_t i, Number value) { entries_.at(i) += value; }
 
-    /// Adds the given @p values to the entries at the given @p indices.
+    /// Adds @p values to entries at corresponding @p indices.
     void add(const std::vector<size_t>& indices,
              const std::vector<Number>& values);
-    /// Adds the given @p n @p values to the given @p indices.
+
+    /// Adds @p n @p values to entries at @p indices.
     void add(size_t n, const size_t* indices, const Number* values);
 
-    /// Addition of another Vector.
+    /// Adds another vector.
     void add(const Vector& other) { add(Number(1), other); }
-    /// Addition of a scaled Vector.
+
+    /// Adds a scaled vector: this += @p b * other.
     void add(const Number b, const Vector& other) { sadd(Number(1), b, other); }
-    /// Scaling and addition of another Vector.
+
+    /// Performs scaled addition: this = this + @p a * other.
     void sadd(const Number a, const Vector& other) { sadd(Number(1), a, other); }
-    /// Scaling and addition of a scaled Vector.
+
+    /// Performs scaled addition: this = @p a * this + @p b * other.
     void sadd(Number a, Number b, const Vector& other);
 
-    /// Addition of another Vector.
+    /// Adds another vector in-place.
     Vector& operator+=(const Vector& other);
-    /// Subtraction of another Vector.
+
+    /// Subtracts another vector in-place.
     Vector& operator-=(const Vector& other);
 
-    /// Returns the minimum-valued entry.
+    /// Returns the minimum entry.
     Number min() const;
-    /// Returns the maximum-valued entry.
+
+    /// Returns the maximum entry.
     Number max() const;
-    /// Returns the sum of the entries.
+
+    /// Returns the sum of all entries.
     Number sum() const;
-    /// Returns the mean of the entries.
+
+    /// Returns the mean of all entries.
     types::real mean() const;
 
-    /// Returns the @f$ \ell_\infty @f$-norm of the Vector.
+    /// Returns the infinity norm (max absolute entry).
     Number linfty_norm() const;
-    /// Returns the @f$ \ell_1 @f$-norm of the Vector.
+
+    /// Returns the 1-norm (sum of absolute values).
     Number l1_norm() const;
-    /// Returns the @f$ \ell_2 @f$-norm of the Vector.
+
+    /// Returns the 2-norm (Euclidean norm).
     types::real l2_norm() const;
-    /// Returns the @f$ \ell_p @f$-norm of the Vector.
+
+    /// Returns the p-norm.
     types::real lp_norm(types::real p) const;
 
-    /// Returns the @f$ \ell_2 @f$-norm squared of the Vector.
+    /// Returns the squared 2-norm.
     types::real norm_sqr() const;
 
-    /// Returns the dot product with another Vector.
+    /// Returns the dot product with @p other.
     Number dot(const Vector& other) const;
 
-    /// Write the vector as a string.
+    /// Converts the vector to a string representation.
     std::string to_string(unsigned int precision = 3,
                           bool scientific = false,
                           bool newline = true) const;
 
-  private
-  :
+  private:
     NDArray<1, Number> entries_;
   };
 
