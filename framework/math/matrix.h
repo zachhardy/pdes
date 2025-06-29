@@ -9,6 +9,8 @@ namespace pdes
   class Matrix
   {
   public:
+    using value_type = typename NDArray<2, Number>::value_type;
+
     Matrix() = default;
 
     /// Constructs a square @p m by @p m matrix set to zero.

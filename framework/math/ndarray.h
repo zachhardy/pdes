@@ -43,6 +43,8 @@ namespace pdes
   class NDArray
   {
   public:
+    using value_type = Number;
+
     /// Constructs an empty NDArray.
     NDArray() noexcept;
 

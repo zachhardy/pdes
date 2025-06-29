@@ -13,6 +13,9 @@ namespace pdes
   class Vector
   {
   public:
+    using value_type = typename NDArray<1, Number>::value_type;
+
+    /// Constructs an empty Vector.
     Vector() = default;
 
     /// Constructs a Vector with the given @p size set to @p value.
