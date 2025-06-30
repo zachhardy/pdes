@@ -14,14 +14,15 @@ namespace pdes
    * and parallelize, though it typically converges slowly and is only effective for
    * diagonally dominant or well-conditioned systems.
    *
-   * @tparam VectorType The vector type to use (default: Vector<>).
+   * @tparam MatrixType The matrix type to use (default: Matrix<>).
    */
-  template<typename VectorType = Vector<>>
-  class JacobiSolver final : public LinearSolver<JacobiSolver<VectorType>, VectorType>
+  template<typename MatrixType = Matrix<>>
+  class JacobiSolver final : public LinearSolver<MatrixType>
   {
   public:
-    using Base = LinearSolver<JacobiSolver, VectorType>;
+    using Base = LinearSolver<MatrixType>;
     using Result = typename Base::Result;
+    using VectorType = typename Base::VectorType;
     using value_type = typename VectorType::value_type;
 
     /// Constructs an uninitialized Jacobi solver.
@@ -44,22 +45,20 @@ namespace pdes
      * @param M Unused preconditioner (ignored).
      * @return Solver result with convergence status.
      */
-    template<typename MatrixType, typename PreconditionerType>
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
-                 const PreconditionerType&) const;
+                 const Preconditioner<VectorType>&) const override;
   };
 
   /*-------------------- member functions --------------------*/
 
-  template<typename VectorType>
-  template<typename MatrixType, typename PreconditionerType>
-  typename JacobiSolver<VectorType>::Result
-  JacobiSolver<VectorType>::solve(const MatrixType& A,
+  template<typename MatrixType>
+  typename JacobiSolver<MatrixType>::Result
+  JacobiSolver<MatrixType>::solve(const MatrixType& A,
                                   const VectorType& b,
                                   VectorType& x,
-                                  const PreconditionerType&) const
+                                  const Preconditioner<VectorType>&) const
   {
     auto& control = *this->control_;
     const auto inv_diag = internal::extract_inv_diagonal(A, name());

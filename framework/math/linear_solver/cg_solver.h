@@ -15,14 +15,15 @@ namespace pdes
    *
    * It supports preconditioning and returns a result struct containing convergence info.
    *
-   * @tparam VectorType The vector type to use (default: Vector<>).
+   * @tparam MatrixType The matrix type to use (default: Matrix<>).
    */
-  template<typename VectorType = Vector<>>
-  class CGSolver final : public LinearSolver<CGSolver<VectorType>, VectorType>
+  template<typename MatrixType = Matrix<>>
+  class CGSolver final : public LinearSolver<MatrixType>
   {
   public:
-    using Base = LinearSolver<CGSolver, VectorType>;
+    using Base = LinearSolver<MatrixType>;
     using Result = typename Base::Result;
+    using VectorType = typename Base::VectorType;
     using value_type = typename VectorType::value_type;
 
     /// Constructs a CG solver with a given convergence controller.
@@ -42,49 +43,57 @@ namespace pdes
      * @param M Preconditioner to apply on residuals.
      * @return Solver result with convergence status.
      */
-    template<typename MatrixType, typename PreconditionerType>
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
-                 const PreconditionerType& M) const;
+                 const Preconditioner<VectorType>& M) const override;
   };
 
   /*-------------------- member functions --------------------*/
 
-  template<typename VectorType>
-  template<typename MatrixType, typename PreconditionerType>
-  typename CGSolver<VectorType>::Result
-  CGSolver<VectorType>::solve(const MatrixType& A,
+  template<typename MatrixType>
+  typename CGSolver<MatrixType>::Result
+  CGSolver<MatrixType>::solve(const MatrixType& A,
                               const VectorType& b,
                               VectorType& x,
-                              const PreconditionerType& M) const
+                              const Preconditioner<VectorType>& M) const
   {
     auto& control = *this->control_;
 
     const size_t n = b.size();
-    Vector<value_type> r(n), z(n), p(n), Ap(n);
+    VectorType r(n), z(n), p(n), v(n);
 
-    // r0 = b - Ax0
-    A.vmult(x, Ap);
-    r = b;
-    r.add(value_type(-1), Ap);
-
-    // z0 = Minv r0
+    // Initial preconditioned residual:
+    // z = M * r = M * (b - A * x)
+    A.residual(x, b, r);
     M.vmult(r, z);
 
+    // Initialize search direction
     p = z;
+
+    // Initialize dot product
     auto rz_old = r.dot(z);
+
     for (unsigned int iter = 0;; ++iter)
     {
-      A.vmult(p, Ap);
-      const auto alpha = rz_old / p.dot(Ap);
+      // Compute step-length:
+      // v = A*p -> alpha = (r, z)/(p, v)
+      A.vmult(p, v);
+      const auto alpha = rz_old / p.dot(v);
 
-      x.add(alpha, p); // x_{k+1} = x_k + \alpha_k p_k
-      r.add(-alpha, Ap); // r_{k+1} = r_k - \alpha_k Ap_k
-      M.vmult(r, z); // z_{k+1} = Minv r_{k+1}
+      // Update solution: x += alpha * p
+      x.add(alpha, p);
 
+      // Update preconditioned residual:
+      // z = M * r = M * (alpha * v)
+      r.add(-alpha, v);
+      M.vmult(r, z);
+
+      // Compute new dot product for next iteration
       const auto rz_new = r.dot(z);
-      const auto residual_norm = std::sqrt(r.dot(r));
+
+      // Check convergence based on residual norm
+      const auto residual_norm = r.l2_norm();
       this->log_iter(iter, residual_norm);
       if (not control.check(iter, residual_norm))
       {
@@ -93,8 +102,10 @@ namespace pdes
         return result;
       }
 
+      // Update search direction: p = z + beta * p
       const auto beta = rz_new / rz_old;
-      p.sadd(beta, value_type(1), z); // p_{k+1} = z_{k+1} + \beta_k * p_k
+      p.sadd(beta, value_type(1), z);
+
       rz_old = rz_new;
     }
   }

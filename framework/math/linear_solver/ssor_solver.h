@@ -16,14 +16,15 @@ namespace pdes
    *
    * Requires the matrix to be square and typically performs best on diagonally dominant systems.
    *
-   * @tparam VectorType The vector type to use (default: Vector<>).
+   * @tparam MatrixType The matrix type to use (default: Matrix<>).
    */
-  template<typename VectorType = Vector<>>
-  class SSORSolver final : public LinearSolver<SSORSolver<VectorType>, VectorType>
+  template<typename MatrixType = Matrix<>>
+  class SSORSolver final : public LinearSolver<MatrixType>
   {
   public:
-    using Base = LinearSolver<SSORSolver, VectorType>;
+    using Base = LinearSolver<MatrixType>;
     using Result = typename Base::Result;
+    using VectorType = typename Base::VectorType;
     using value_type = typename VectorType::value_type;
 
     /// Constructs an SSOR solver with default omega = 1.3.
@@ -46,11 +47,10 @@ namespace pdes
      * @param M Unused preconditioner (ignored).
      * @return Solver result with convergence status.
      */
-    template<typename MatrixType, typename PreconditionerType>
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
-                 const PreconditionerType&) const;
+                 const Preconditioner<VectorType>&) const override;
 
     /// Relaxation parameter \f$ \omega \in (0, 2) \f$.
     value_type omega_ = value_type(1.3);
@@ -58,22 +58,21 @@ namespace pdes
 
   /*-------------------- member functions --------------------*/
 
-  template<typename VectorType>
-  SSORSolver<VectorType>::SSORSolver(SolverControl* control, const value_type omega)
-    : LinearSolver<SSORSolver, VectorType>(control),
+  template<typename MatrixType>
+  SSORSolver<MatrixType>::SSORSolver(SolverControl* control, const value_type omega)
+    : Base(control),
       omega_(omega)
   {
     if (omega_ <= 0.0 || omega_ >= 2.0)
       throw std::invalid_argument("SSOR relaxation parameter omega must be in (0, 2)");
   }
 
-  template<typename VectorType>
-  template<typename MatrixType, typename PreconditionerType>
-  typename SSORSolver<VectorType>::Result
-  SSORSolver<VectorType>::solve(const MatrixType& A,
+  template<typename MatrixType>
+  typename SSORSolver<MatrixType>::Result
+  SSORSolver<MatrixType>::solve(const MatrixType& A,
                                 const VectorType& b,
                                 VectorType& x,
-                                const PreconditionerType&) const
+                                const Preconditioner<VectorType>&) const
   {
     auto& control = *this->control_;
     const auto inv_diag = internal::extract_inv_diagonal(A, name());

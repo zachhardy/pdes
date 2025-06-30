@@ -1,5 +1,5 @@
 #pragma once
-#include "framework/math/vector.h"
+#include "framework/math/matrix.h"
 #include "framework/math/linear_solver/solver_control.h"
 #include "framework/math/linear_solver/preconditioner/precondition_identity.h"
 #include "framework/logger.h"
@@ -10,15 +10,15 @@ namespace pdes
   /**
    * Base class for iterative linear solvers.
    *
-   * @tparam Derived The derived solver class (CRTP pattern).
-   * @tparam VectorType Type of the vector (default: Vector<>).
+   * @tparam MatrixType of the matrix (default: Matrix<>).
    */
-  template<typename Derived, typename VectorType = Vector<>>
+  template<typename MatrixType = Matrix<>>
   class LinearSolver
   {
   public:
     using Result = SolverControl::Result;
-    using value_type = typename VectorType::value_type;
+    using VectorType = typename MatrixType::vector_type;
+    using value_type = typename MatrixType::value_type;
 
     /// Constructs an uninitialized solver.
     LinearSolver() = default;
@@ -42,7 +42,6 @@ namespace pdes
      * @param x The solution vector to be written to.
      * @return Solver result including convergence status.
      */
-    template<typename MatrixType>
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x) const;
@@ -56,11 +55,10 @@ namespace pdes
      * @param M The preconditioner.
      * @return Solver result including convergence status.
      */
-    template<typename MatrixType, typename PreconditionerType>
-    Result solve(const MatrixType& A,
-                 const VectorType& b,
-                 VectorType& x,
-                 const PreconditionerType& M) const;
+    virtual Result solve(const MatrixType& A,
+                         const VectorType& b,
+                         VectorType& x,
+                         const Preconditioner<VectorType>& M) const = 0;
 
   protected:
     /// Logs one solver iteration.
@@ -75,40 +73,28 @@ namespace pdes
 
   /*-------------------- member functions --------------------*/
 
-  template<typename Derived, typename VectorType>
-  LinearSolver<Derived, VectorType>::LinearSolver(SolverControl* control)
+  template<typename MatrixType>
+  LinearSolver<MatrixType>::LinearSolver(SolverControl* control)
     : control_(control)
   {
     static_assert(std::is_floating_point_v<value_type>,
                   "Number must be a floating point type (e.g., float, double)");
   }
 
-  template<typename Derived, typename VectorType>
   template<typename MatrixType>
-  typename LinearSolver<Derived, VectorType>::Result
-  LinearSolver<Derived, VectorType>::solve(const MatrixType& A,
-                                           const VectorType& b,
-                                           VectorType& x) const
+  typename LinearSolver<MatrixType>::Result
+  LinearSolver<MatrixType>::solve(const MatrixType& A,
+                                  const VectorType& b,
+                                  VectorType& x) const
   {
     PreconditionIdentity identity;
     return solve(A, b, x, identity);
   }
 
-  template<typename Derived, typename VectorType>
-  template<typename MatrixType, typename PreconditionerType>
-  typename LinearSolver<Derived, VectorType>::Result
-  LinearSolver<Derived, VectorType>::solve(const MatrixType& A,
-                                           const VectorType& b,
-                                           VectorType& x,
-                                           const PreconditionerType& M) const
-  {
-    return static_cast<const Derived *>(this)->solve(A, b, x, M);
-  }
-
-  template<typename Derived, typename VectorType>
+  template<typename MatrixType>
   void
-  LinearSolver<Derived, VectorType>::log_iter(const unsigned int iter,
-                                              const value_type residual_norm) const
+  LinearSolver<MatrixType>::log_iter(const unsigned int iter,
+                                     const value_type residual_norm) const
   {
     if (logger_)
       logger_->iter()
@@ -116,9 +102,9 @@ namespace pdes
           << ", residual = " << residual_norm;
   }
 
-  template<typename Derived, typename VectorType>
+  template<typename MatrixType>
   void
-  LinearSolver<Derived, VectorType>::log_summary(const Result& result) const
+  LinearSolver<MatrixType>::log_summary(const Result& result) const
   {
     if (not logger_)
       return;

@@ -7,6 +7,7 @@ namespace pdes
   class Preconditioner
   {
   public:
+    Preconditioner() = default;
     virtual ~Preconditioner() = default;
 
     /// Apply the preconditioner: dst = inv * src

@@ -14,14 +14,15 @@ namespace pdes
    * This class is implemented as a special case of the SORSolver with relaxation
    * factor omega = 1.0.
    *
-   * @tparam VectorType The vector type to use (default: Vector<>).
+   * @tparam MatrixType The matrix type to use (default: Matrix<>).
    */
-  template<typename VectorType = Vector<>>
-  class GaussSeidelSolver final : public SORSolver<VectorType>
+  template<typename MatrixType = Matrix<>>
+  class GaussSeidelSolver final : public SORSolver<MatrixType>
   {
   public:
-    using Base = SORSolver<VectorType>;
+    using Base = SORSolver<MatrixType>;
     using Result = typename Base::Result;
+    using VectorType = typename Base::VectorType;
     using value_type = typename VectorType::value_type;
 
     /// Constructs an uninitialized Gauss-Seidel solver.

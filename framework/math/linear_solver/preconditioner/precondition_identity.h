@@ -16,6 +16,9 @@ namespace pdes
   public:
     using VectorType = typename MatrixType::vector_type;
 
+    PreconditionIdentity() = default;
+    explicit PreconditionIdentity(const MatrixType*) {}
+
     /// Applies z = r with no modification.
     void vmult(const VectorType& src, VectorType& dst) const override { dst = src; }
 

@@ -193,16 +193,16 @@ namespace pdes
     /// Returns the matrix-matrix product C = AB.
     Matrix operator*(const Matrix& B) const;
 
-    /// Computes the residual r = Ax - b.
+    /// Computes the residual r = b - Ax.
     void residual(const Vector<Number>& x,
                   const Vector<Number>& b,
                   Vector<Number>& r) const;
 
-    /// Returns the residual vector r = Ax - b.
+    /// Returns the residual vector r = b - Ax.
     Vector<Number> residual(const Vector<Number>& x,
                             const Vector<Number>& b) const;
 
-    /// Returns the Euclidean norm of the residual r = Ax - b.
+    /// Returns the Euclidean norm of the residual r = b - Ax.
     types::real residual_norm(const Vector<Number>& x,
                               const Vector<Number>& b) const;
 
@@ -426,7 +426,7 @@ namespace pdes
       const Number* row = begin(i);
       for (size_t j = 0; j < n(); ++j)
         sum += row[j] * x(j);
-      r(i) = sum - b(i);
+      r(i) = b(i) - sum;
     }
   }
 
