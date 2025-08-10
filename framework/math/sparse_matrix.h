@@ -71,6 +71,9 @@ namespace pdes
     /// Returns true if the matrix is empty (has zero rows or columns).
     bool empty() const noexcept { return m_ == 0 or n_ == 0; }
 
+    /// Reinitializes the sparse matrix with @p m rows and @n columns, clearing existing data.
+    void reinit(size_t m, size_t n);
+
     /**
      * Compresses the LIL-format matrix into CSR format.
      *
@@ -226,6 +229,21 @@ namespace pdes
     values_.clear();
     cache_.clear();
   }
+
+  template<typename Number>
+  void
+  SparseMatrix<Number>::reinit(const size_t m, const size_t n)
+  {
+    m_ = m;
+    n_ = n;
+
+    row_ptr_.clear();
+    cols_.clear();
+    values_.clear();
+
+    cache_.resize(m);
+  }
+
 
   template<typename Number>
   void
