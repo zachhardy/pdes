@@ -26,7 +26,7 @@ namespace pdes
       unsigned int nz = 0; ///< Number of cells in the z-dimension
     };
 
-    Mesh(unsigned int dim, CoordinateSystem coord_sys)
+    Mesh(const unsigned int dim, const CoordinateSystem coord_sys)
       : dim_(dim),
         coord_sys_(coord_sys),
         orthogonal_(false),
@@ -50,14 +50,15 @@ namespace pdes
     void add_cell(Cell cell) { local_cells_.push_back(std::move(cell)); }
     void add_cells(std::vector<Cell> cells);
 
-    const MeshVector<>& vertices(const types::global_index i) const { return vertices_.at(i); }
+    unsigned int num_vertices() const { return vertices_.size(); }
+    const MeshVector<>& vertex(const types::global_index i) const { return vertices_.at(i); }
     const std::map<types::global_index, MeshVector<>>& vertices() const { return vertices_; }
 
-    Cell& cells(const unsigned int i) { return local_cells_.at(i); }
-    const Cell& cells(const unsigned int local_id) const { return local_cells_.at(local_id); }
-
-    std::vector<Cell>& cells() { return local_cells_; }
-    const std::vector<Cell>& cells() const { return local_cells_; }
+    unsigned int num_local_cells() const { return local_cells_.size(); }
+    Cell& local_cell(const unsigned int i) { return local_cells_.at(i); }
+    const Cell& local_cell(const unsigned int local_id) const { return local_cells_.at(local_id); }
+    std::vector<Cell>& local_cells() { return local_cells_; }
+    const std::vector<Cell>& local_cells() const { return local_cells_; }
 
   private:
     const unsigned int dim_;

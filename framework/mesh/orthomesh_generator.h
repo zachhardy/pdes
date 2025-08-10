@@ -5,6 +5,7 @@ namespace pdes
 {
   class OrthoMeshGenerator
   {
+  public:
     /**
      * Creates a 1D orthogonal mesh in the given coordinate system with the
      * given 1D vertices.

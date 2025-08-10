@@ -193,7 +193,7 @@ namespace pdes
     unsigned int idx = 0;
     for (unsigned int r = 0; r < nr; ++r)
       for (unsigned int c = 0; c < cells_per_regions[r]; ++c)
-        mesh.cells(idx++).set_block_id(block_ids[r]);
+        mesh.local_cells(idx++).set_block_id(block_ids[r]);
 
     return mesh;
   }
@@ -327,7 +327,7 @@ namespace pdes
       for (unsigned int cy = 0; cy < cells_per_y_region[ry]; ++cy)
         for (unsigned int rx = 0; rx < nxr; ++rx)
           for (unsigned int cx = 0; cx < cells_per_x_region[rx]; ++cx)
-            mesh.cells(idx++).set_block_id(block_ids[ry * nxr + rx]);
+            mesh.local_cells(idx++).set_block_id(block_ids[ry * nxr + rx]);
 
     return mesh;
   }
@@ -494,7 +494,7 @@ namespace pdes
               for (unsigned int cx = 0; cx < cells_per_x_region[rx]; ++cx)
               {
                 const auto bid = (rz * nyr + ry) * nxr + rx;
-                mesh.cells(idx++).set_block_id(block_ids[bid]);
+                mesh.local_cells(idx++).set_block_id(block_ids[bid]);
               }
 
     return mesh;

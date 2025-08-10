@@ -52,7 +52,7 @@ namespace pdes
     types::global_index vertex_ids(const unsigned int vid) const { return vertex_ids_.at(vid); }
     const std::vector<types::global_index>& vertex_ids() const { return vertex_ids_; }
 
-    void compute_geometric_data(const Mesh& mesh);
+    void compute_geometric_data(const Mesh& mesh, unsigned int f = 0);
 
   private:
     const Type type_;

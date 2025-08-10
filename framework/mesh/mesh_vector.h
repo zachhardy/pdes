@@ -40,6 +40,13 @@ namespace pdes
     template<typename OtherNumber>
     MeshVector& operator=(MeshVector<OtherNumber>&& other);
 
+    MeshVector& operator=(Number value);
+
+    /// Returns a reference to the value of the <tt>d</tt>'th dimension.
+    Number& operator[](unsigned int d);
+    /// Returns the value of the <tt>d</tt>'th dimension.
+    Number operator[](unsigned int d) const;
+
     /// Returns a reference to the value of the <tt>d</tt>'th dimension.
     Number& operator()(unsigned int d);
     /// Returns the value of the <tt>d</tt>'th dimension.
@@ -55,6 +62,9 @@ namespace pdes
     /// Returns the squared distance to another MeshVector.
     Number distance_sqr(const MeshVector& other) const;
 
+    /// Returns the direction of this MeshVector.
+    MeshVector direction() const;
+
     /// Returns the dot product between this MeshVector and another.
     Number dot(const MeshVector& other) const;
 
@@ -69,6 +79,9 @@ namespace pdes
     MeshVector& operator+=(const MeshVector& other);
     /// Subtracts another MeshVector.
     MeshVector& operator-=(const MeshVector& other);
+
+    /// Returns the cross product between two vectors.
+    MeshVector cross(const MeshVector& other) const;
 
     /// Prints the MeshVector to an output stream.
     std::string to_string(unsigned int precision = 3,
@@ -122,7 +135,6 @@ namespace pdes
     return *this;
   }
 
-
   template<typename Number>
   template<typename OtherNumber>
   MeshVector<Number>::MeshVector(const MeshVector<OtherNumber>& other)
@@ -169,6 +181,34 @@ namespace pdes
     return *this;
   }
 
+  template<typename Number>
+  MeshVector<Number>&
+  MeshVector<Number>::operator=(const Number value)
+  {
+    coords_.fill(value);
+    return *this;
+  }
+
+
+  template<typename Number>
+  Number&
+  MeshVector<Number>::operator[](const unsigned int d)
+  {
+    if (d >= 3)
+      throw std::out_of_range("Dimension out of range.");
+
+    return coords_[d];
+  }
+
+  template<typename Number>
+  Number
+  MeshVector<Number>::operator[](const unsigned int d) const
+  {
+    if (d >= 3)
+      throw std::out_of_range("Dimension out of range.");
+
+    return coords_[d];
+  }
 
   template<typename Number>
   Number&
@@ -253,6 +293,17 @@ namespace pdes
   {
     return vec1.distance_sqr(vec2);
   }
+
+  template<typename Number>
+  MeshVector<Number>
+  MeshVector<Number>::direction() const
+  {
+    auto dir(*this);
+    const auto len = length();
+    dir.scale(len > 0.0 ? 1.0 / len : 0.0);
+    return dir;
+  }
+
 
   template<typename Number>
   Number
@@ -386,6 +437,25 @@ namespace pdes
     result -= vec2;
     return result;
   }
+
+  template<typename Number>
+  MeshVector<Number>
+  MeshVector<Number>::cross(const MeshVector& other) const
+  {
+    return MeshVector{
+      coords_[1] * other[2] - coords_[2] * other[1],
+      coords_[2] * other[0] - coords_[0] * other[2],
+      coords_[0] * other[1] - coords_[1] * other[0]
+    };
+  }
+
+  template<typename Number>
+  MeshVector<Number>
+  cross(const MeshVector<Number>& x, const MeshVector<Number>& y)
+  {
+    return x.cross(y);
+  }
+
 
   template<typename Number>
   std::string

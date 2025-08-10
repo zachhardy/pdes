@@ -1,8 +1,4 @@
-#include "framework/math/vector.h"
-#include "framework/math/matrix.h"
-#include "framework/math/linear_solver/cg_solver.h"
-#include "framework/math/linear_solver/preconditioner/precondition_ssor.h"
-#include "framework/math/linear_solver/solver_control.h"
+#include "framework/mesh/orthomesh_generator.h"
 #include "framework/logger.h"
 #include <iostream>
 
@@ -16,30 +12,20 @@ main()
 
   using namespace pdes;
 
-  constexpr size_t n = 10; // number of interior nodes
-  Matrix A(n, n, 0.0);
-  Vector b(n, 0.0);
-  Vector x(n, 0.0); // initial guess = 0
+  constexpr auto nx = 10;
+  std::vector<double> x_verts;
+  for (int i = 0; i < nx + 1; ++i)
+    x_verts.emplace_back(static_cast<double>(i));
 
-  // Assemble 1D Laplacian matrix (Dirichlet BCs: u(0) = u(1) = 0)
-  constexpr auto h = 1.0 / n;
-  for (size_t i = 0; i < n; ++i)
-  {
-    A(i, i) = 2.0;
-    if (i > 0)
-      A(i, i - 1) = -1.0;
-    if (i < n - 1)
-      A(i, i + 1) = -1.0;
-    b(i) = h * h; // constant source term
-  }
+  constexpr auto ny = 10;
+  std::vector<double> y_verts;
+  for (int j = 0; j < ny + 1; ++j)
+    y_verts.emplace_back(static_cast<double>(j));
 
-  // Preconditioned solve
-  const PreconditionSSOR<> M(&A);
-  SolverControl control(100, 1.0e-8);
-  CGSolver<> solver(&control);
-  const Logger logger(std::cout, LogLevel::DEBUG);
-  solver.set_logger(logger);
-  auto [iterations, residual, converged] = solver.solve(A, b, x, M);
+  const auto mesh = OrthoMeshGenerator::create_2d_orthomesh(x_verts, y_verts);
 
-  std::cout << "Solution: " << x.to_string(5) << '\n';
+  double total = 0.0;
+  for (const auto& cell: mesh.cells())
+    total += cell.volume();
+  std::cout << "Total volume is " << total << std::endl;
 }
