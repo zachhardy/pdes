@@ -579,7 +579,7 @@ namespace pdes
                                   const bool scientific,
                                   const bool newline) const
   {
-    if (!compressed_)
+    if (not compressed_)
       throw std::logic_error("SparseMatrix::to_string(): matrix must be compressed");
 
     std::ostringstream oss;
@@ -589,19 +589,13 @@ namespace pdes
     else
       oss << std::fixed;
 
-    oss << "[";
+    oss << "SparseMatrix:" << std::endl;;
     for (size_t i = 0; i < m_; ++i)
     {
-      oss << (i == 0 ? "[" : " [");
-      bool first = true;
+      oss << "Row " << i << ": [";
       for (size_t k = row_ptr_[i]; k < row_ptr_[i + 1]; ++k)
-      {
-        if (!first)
-          oss << " ";
-        oss << "(" << cols_[k] << ", " << values_[k] << ")";
-        first = false;
-      }
-      oss << (i < m_ - 1 ? "]\n" : "]]");
+        oss << (k != row_ptr_[i] ? " (" : "(") << cols_[k] << ", " << values_[k] << ")";
+      oss << (i < m_ - 1 ? "]\n" : "]");
     }
 
     if (newline)
@@ -649,5 +643,12 @@ namespace pdes
   operator*(const SparseMatrix<Number>& A, const Vector<Number>& x)
   {
     return A.vmult(x);
+  }
+
+  template<typename Number>
+  std::ostream&
+  operator<<(std::ostream& os, const SparseMatrix<Number>& A)
+  {
+    return os << A.to_string();
   }
 }
