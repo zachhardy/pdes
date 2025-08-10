@@ -1,8 +1,8 @@
+#include "modules/diffusion/diffusion_model.h"
+#include "modules/diffusion/diffusion_solver.h"
 #include "framework/mesh/orthomesh_generator.h"
-#include "framework/logger.h"
+#include "framework/math/spatial_discretization/finite_volume.h"
 #include <iostream>
-
-#include "framework/math/linear_solver/jacobi_solver.h"
 
 
 int
@@ -23,9 +23,11 @@ main()
     y_verts.emplace_back(static_cast<double>(j));
 
   const auto mesh = OrthoMeshGenerator::create_2d_orthomesh(x_verts, y_verts);
+  const auto fv = std::make_shared<FiniteVolume>(mesh);
 
-  double total = 0.0;
-  for (const auto& cell: mesh.cells())
-    total += cell.volume();
-  std::cout << "Total volume is " << total << std::endl;
+
+  const auto model = DiffusionModel(1.0,
+                                    [](const MeshVector<>&) { return 1.0; });
+  auto solver = DiffusionSolver(model, fv);
+  solver.assemble();
 }

@@ -19,7 +19,7 @@ message(STATUS "GTest found at: ${GTest_DIR}")
 
 
 # libpdes
-file(GLOB_RECURSE LIBPDES_SOURCES CONFIGURE_DEPENDS framework/*.cc)
+file(GLOB_RECURSE LIBPDES_SOURCES CONFIGURE_DEPENDS framework/*.cc modules/*.cc)
 add_library(libpdes SHARED ${LIBPDES_SOURCES})
 
 target_include_directories(libpdes
