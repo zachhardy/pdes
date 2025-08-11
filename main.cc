@@ -41,4 +41,7 @@ main()
   const auto model = DiffusionModel(1.0, k, bcs);
   auto solver = DiffusionSolver(model, fv, linsol, M);
   solver.solve();
+
+  const auto& phi = solver.solution();
+  std::cout << "Solution has " << phi.size() << " entries." << std::endl;
 }
