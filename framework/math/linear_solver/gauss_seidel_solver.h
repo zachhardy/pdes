@@ -20,16 +20,17 @@ namespace pdes
   class GaussSeidelSolver final : public SORSolver<MatrixType>
   {
   public:
-    using Base = SORSolver<MatrixType>;
-    using Result = typename Base::Result;
-    using VectorType = typename Base::VectorType;
-    using value_type = typename VectorType::value_type;
+    using value_type = typename SORSolver<MatrixType>::value_type;
+    using VectorType = typename SORSolver<MatrixType>::VectorType;
+    using Result = typename SORSolver<MatrixType>::Result;
 
     /// Constructs an uninitialized Gauss-Seidel solver.
     GaussSeidelSolver() = default;
 
     /// Constructs a Gauss-Seidel solver with solver control.
-    explicit GaussSeidelSolver(SolverControl* control) : Base(control, value_type(1)) {}
+    explicit GaussSeidelSolver(SolverControl* control)
+      : SORSolver<MatrixType>(control, value_type(1))
+    {}
 
     /// Returns the name of the solver.
     std::string name() const override { return "GaussSeidelSolver"; }

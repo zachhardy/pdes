@@ -18,6 +18,7 @@ namespace pdes
   {
   public:
     using value_type = typename MatrixType::value_type;
+    using VectorType = typename MatrixType::VectorType;
 
     /// Constructs an empty LU solver.
     LUSolver() = default;
@@ -26,11 +27,9 @@ namespace pdes
     void factor(const MatrixType& A);
 
     /// Solves Ax = b by factoring A and performing forward/backward substitution.
-    template<typename VectorType>
     void solve(const MatrixType& A, const VectorType& b, VectorType& x);
 
     /// Solves LUx = b using pre-factored matrix.
-    template<typename VectorType>
     void solve(const VectorType& b, VectorType& x) const;
 
     /// Returns the name of the solver.
@@ -90,7 +89,6 @@ namespace pdes
   }
 
   template<typename MatrixType>
-  template<typename VectorType>
   void
   LUSolver<MatrixType>::solve(const MatrixType& A, const VectorType& b, VectorType& x)
   {
@@ -99,7 +97,6 @@ namespace pdes
   }
 
   template<typename MatrixType>
-  template<typename VectorType>
   void
   LUSolver<MatrixType>::solve(const VectorType& b, VectorType& x) const
   {

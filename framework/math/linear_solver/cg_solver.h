@@ -1,6 +1,4 @@
 #pragma once
-#include "framework/types.h"
-#include "framework/math/vector.h"
 #include "framework/math/matrix.h"
 #include "framework/math/linear_solver/linear_solver.h"
 
@@ -21,18 +19,17 @@ namespace pdes
   class CGSolver final : public LinearSolver<MatrixType>
   {
   public:
-    using Base = LinearSolver<MatrixType>;
-    using Result = typename Base::Result;
-    using VectorType = typename Base::VectorType;
-    using value_type = typename VectorType::value_type;
+    using value_type = typename LinearSolver<MatrixType>::value_type;
+    using VectorType = typename LinearSolver<MatrixType>::VectorType;
+    using Result = typename LinearSolver<MatrixType>::Result;
 
     /// Constructs a CG solver with a given convergence controller.
-    explicit CGSolver(SolverControl* control) : Base(control) {}
+    explicit CGSolver(SolverControl* control) : LinearSolver<MatrixType>(control) {}
 
     /// Returns the name of the solver.
     std::string name() const override { return "ConjugateGradientSolver"; }
 
-    using Base::solve;
+    using LinearSolver<MatrixType>::solve;
 
     /**
      * Solves Ax = b using the CG method with preconditioner M.
@@ -46,7 +43,7 @@ namespace pdes
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
-                 const Preconditioner<VectorType>& M) const override;
+                 const Preconditioner<MatrixType>& M) const override;
   };
 
   /*-------------------- member functions --------------------*/
@@ -56,7 +53,7 @@ namespace pdes
   CGSolver<MatrixType>::solve(const MatrixType& A,
                               const VectorType& b,
                               VectorType& x,
-                              const Preconditioner<VectorType>& M) const
+                              const Preconditioner<MatrixType>& M) const
   {
     auto& control = *this->control_;
 

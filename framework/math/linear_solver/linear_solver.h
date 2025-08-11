@@ -16,9 +16,9 @@ namespace pdes
   class LinearSolver
   {
   public:
-    using Result = SolverControl::Result;
-    using VectorType = typename MatrixType::vector_type;
     using value_type = typename MatrixType::value_type;
+    using VectorType = typename MatrixType::VectorType;
+    using Result = SolverControl::Result;
 
     /// Constructs an uninitialized solver.
     LinearSolver() = default;
@@ -58,7 +58,7 @@ namespace pdes
     virtual Result solve(const MatrixType& A,
                          const VectorType& b,
                          VectorType& x,
-                         const Preconditioner<VectorType>& M) const = 0;
+                         const Preconditioner<MatrixType>& M) const = 0;
 
   protected:
     /// Logs one solver iteration.

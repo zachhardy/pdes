@@ -8,14 +8,13 @@ namespace pdes
   class BiCGStabSolver : public LinearSolver<MatrixType>
   {
   public:
-    using Base = LinearSolver<MatrixType>;
-    using Result = typename Base::Result;
-    using VectorType = typename Base::VectorType;
-    using value_type = typename VectorType::value_type;
+    using value_type = typename LinearSolver<MatrixType>::value_type;
+    using VectorType = typename LinearSolver<MatrixType>::VectorType;
+    using Result = typename LinearSolver<MatrixType>::Result;
 
-    explicit BiCGStabSolver(SolverControl* control) : Base(control) {}
+    explicit BiCGStabSolver(SolverControl* control) : LinearSolver<MatrixType>(control) {}
 
-    using Base::solve;
+    using LinearSolver<MatrixType>::solve;
 
     /**
      * Solves Ax = b using the CG method with preconditioner M.
@@ -29,7 +28,7 @@ namespace pdes
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
-                 const Preconditioner<VectorType>& M) const override;
+                 const Preconditioner<MatrixType>& M) const override;
 
     std::string name() const override { return "BiCGStab"; }
   };
@@ -39,7 +38,7 @@ namespace pdes
   BiCGStabSolver<MatrixType>::solve(const MatrixType& A,
                                     const VectorType& b,
                                     VectorType& x,
-                                    const Preconditioner<VectorType>& M) const
+                                    const Preconditioner<MatrixType>& M) const
   {
     auto& control = *this->control_;
     const auto n = b.size();
@@ -133,10 +132,5 @@ namespace pdes
 
       rho_old = rho;
     }
-
-    // If loop exits without convergence
-    const auto result = control.final_state();
-    this->log_summary(result);
-    return result;
   }
 } // namespace pdes

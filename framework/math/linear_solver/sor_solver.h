@@ -23,13 +23,12 @@ namespace pdes
   class SORSolver : public LinearSolver<MatrixType>
   {
   public:
-    using Base = LinearSolver<MatrixType>;
-    using Result = typename Base::Result;
-    using VectorType = typename Base::VectorType;
-    using value_type = typename VectorType::value_type;
+    using value_type = typename LinearSolver<MatrixType>::value_type;
+    using VectorType = typename LinearSolver<MatrixType>::VectorType;
+    using Result = typename LinearSolver<MatrixType>::Result;
 
     /// Constructs a solver with control and default omega = 1.3.
-    explicit SORSolver(SolverControl* control) : Base(control) {}
+    explicit SORSolver(SolverControl* control) : LinearSolver<MatrixType>(control) {}
 
     /// Constructs a solver with specified relaxation factor.
     explicit SORSolver(SolverControl* control, value_type omega);
@@ -37,7 +36,7 @@ namespace pdes
     /// Returns the name of the solver.
     std::string name() const override { return "SORSolver"; }
 
-    using Base::solve;
+    using LinearSolver<MatrixType>::solve;
 
     /**
      * Solves Ax = b using SOR iteration.
@@ -45,13 +44,12 @@ namespace pdes
      * @param A System matrix.
      * @param b Right-hand side vector.
      * @param x Solution vector (initial guess and result).
-     * @param M Unused preconditioner (ignored).
      * @return Solver result with convergence status.
      */
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
-                 const Preconditioner<VectorType>&) const override;
+                 const Preconditioner<MatrixType>&) const override;
 
     /// Relaxation parameter \f$ \omega \in (0, 2) \f$.
     value_type omega_ = value_type(1.3);
@@ -61,10 +59,10 @@ namespace pdes
 
   template<typename MatrixType>
   SORSolver<MatrixType>::SORSolver(SolverControl* control, const value_type omega)
-    : Base(control),
+    : LinearSolver<MatrixType>(control),
       omega_(omega)
   {
-    if (omega_ <= 0.0 || omega_ >= 2.0)
+    if (omega_ <= 0.0 or omega_ >= 2.0)
       throw std::invalid_argument("SOR relaxation parameter omega must be in (0, 2)");
   }
 
@@ -73,7 +71,7 @@ namespace pdes
   SORSolver<MatrixType>::solve(const MatrixType& A,
                                const VectorType& b,
                                VectorType& x,
-                               const Preconditioner<VectorType>&) const
+                               const Preconditioner<MatrixType>&) const
   {
     auto& control = *this->control_;
     const auto inv_diag = internal::extract_inv_diagonal(A, name());

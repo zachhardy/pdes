@@ -20,21 +20,21 @@ namespace pdes
   class JacobiSolver final : public LinearSolver<MatrixType>
   {
   public:
-    using Base = LinearSolver<MatrixType>;
-    using Result = typename Base::Result;
-    using VectorType = typename Base::VectorType;
-    using value_type = typename VectorType::value_type;
+    using value_type = typename LinearSolver<MatrixType>::value_type;
+    using VectorType = typename LinearSolver<MatrixType>::VectorType;
+    using Result = typename LinearSolver<MatrixType>::Result;
+
 
     /// Constructs an uninitialized Jacobi solver.
     JacobiSolver() = default;
 
     /// Constructs a Jacobi solver with solver control parameters.
-    explicit JacobiSolver(SolverControl* control) : Base(control) {}
+    explicit JacobiSolver(SolverControl* control) : LinearSolver<MatrixType>(control) {}
 
     /// Returns the name of the solver.
     std::string name() const override { return "JacobiSolver"; }
 
-    using Base::solve;
+    using LinearSolver<MatrixType>::solve;
 
     /**
      * Solves Ax = b using Jacobi iteration.
@@ -42,13 +42,12 @@ namespace pdes
      * @param A System matrix.
      * @param b Right-hand side vector.
      * @param x Solution vector (initial guess and result).
-     * @param M Unused preconditioner (ignored).
      * @return Solver result with convergence status.
      */
     Result solve(const MatrixType& A,
                  const VectorType& b,
                  VectorType& x,
-                 const Preconditioner<VectorType>&) const override;
+                 const Preconditioner<MatrixType>&) const override;
   };
 
   /*-------------------- member functions --------------------*/
@@ -58,7 +57,7 @@ namespace pdes
   JacobiSolver<MatrixType>::solve(const MatrixType& A,
                                   const VectorType& b,
                                   VectorType& x,
-                                  const Preconditioner<VectorType>&) const
+                                  const Preconditioner<MatrixType>&) const
   {
     auto& control = *this->control_;
     const auto inv_diag = internal::extract_inv_diagonal(A, name());
