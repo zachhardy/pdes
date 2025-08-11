@@ -16,7 +16,16 @@ namespace pdes
                     const std::shared_ptr<LinearSolver<SparseMatrix<>>>& solver,
                     const std::shared_ptr<Preconditioner<SparseMatrix<>>>& preconditioner);
 
+    /**
+     * Assemble the linear system and rebuild the preconditioner.
+     *
+     * Any call to this function must be followed by a preconditioner
+     * rebuild before solving; this requirement is handled internally by
+     * invoking the preconditioner's build routine at the end of the
+     * assembly process.
+     */
     void assemble();
+
     void solve();
 
     const Vector<>& solution() const { return x_; }
