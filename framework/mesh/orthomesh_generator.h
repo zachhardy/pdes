@@ -26,7 +26,7 @@ namespace pdes
 
     /**
      * Creates a 2D orthogonal mesh in the given coordinate system with the
-     * outer product of the give x and y-coordinates.
+     * outer product of the given x and y coordinates.
      */
     static Mesh create_2d_orthomesh(const std::vector<types::real>& x_coords,
                                     const std::vector<types::real>& y_coords,
@@ -48,7 +48,7 @@ namespace pdes
 
     /**
      * Creates a 3D orthogonal mesh in the given coordinate system with the
-     * outer product of the give x, y, and z-coordinates.
+     * outer product of the given x, y, and z coordinates.
      */
     static Mesh create_3d_orthomesh(const std::vector<types::real>& x_coords,
                                     const std::vector<types::real>& y_coords,
