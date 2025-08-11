@@ -28,6 +28,12 @@ namespace pdes
     using value_type = typename NDArray<2, Number>::value_type;
     using VectorType = Vector<Number>;
 
+    struct RowEntry
+    {
+      size_t col;
+      value_type value;
+    };
+
 
     /// Constructs an empty matrix.
     Matrix() = default;
@@ -92,6 +98,9 @@ namespace pdes
     /// Returns the value of the entry at (@p i, @p j).
     Number operator()(const size_t i, const size_t j) const { return entries_.at(i, j); }
 
+    /// Returns the value of the entry at (@p i, @p j).
+    Number el(const size_t i, const size_t j) const { return entries_.at(i, j); }
+
     /// Returns a pointer to the beginning of row @p i.
     Number* begin(const size_t i) { return entries_.data() + i * n(); }
 
@@ -103,6 +112,13 @@ namespace pdes
 
     /// Returns a const pointer to the end of row @p i.
     const Number* end(const size_t i) const { return entries_.data() + (i + 1) * n(); }
+
+    /**
+     * Iterator over a single row of the matrix.
+     *
+     * Provides access to (column, value) pairs in that row.
+     */
+    std::vector<RowEntry> row_entries(size_t i) const;
 
     /// Returns a pointer to the raw matrix data.
     Number* data() { return entries_.data(); }
@@ -177,16 +193,16 @@ namespace pdes
      * Computes matrix-vector product b = Ax.
      * If add = true, result is added into existing values in @p b.
      */
-    void vmult(const VectorType &x, VectorType &b, bool add = false) const;
+    void vmult(const VectorType& x, VectorType& b, bool add = false) const;
 
     /// Adds a matrix-vector product to the destination via b += Ax.
-    void vmult_add(const VectorType &x, VectorType &b) const { vmult(x, b, true); }
+    void vmult_add(const VectorType& x, VectorType& b) const { vmult(x, b, true); }
 
     /// Returns the matrix-vector product b = Ax.
-    VectorType vmult(const VectorType &x) const;
+    VectorType vmult(const VectorType& x) const;
 
     /// Returns the matrix-vector product b = Ax.
-    VectorType operator*(const VectorType &x) const;
+    VectorType operator*(const VectorType& x) const;
 
     /// Returns the matrix-matrix product C = AB.
     Matrix mmult(const Matrix& B) const;
@@ -195,17 +211,17 @@ namespace pdes
     Matrix operator*(const Matrix& B) const;
 
     /// Computes the residual r = b - Ax.
-    void residual(const VectorType &x,
-                  const VectorType &b,
-                  VectorType &r) const;
+    void residual(const VectorType& x,
+                  const VectorType& b,
+                  VectorType& r) const;
 
     /// Returns the residual vector r = b - Ax.
-    VectorType residual(const VectorType &x,
-                        const VectorType &b) const;
+    VectorType residual(const VectorType& x,
+                        const VectorType& b) const;
 
     /// Returns the Euclidean norm of the residual r = b - Ax.
-    types::real residual_norm(const VectorType &x,
-                              const VectorType &b) const;
+    types::real residual_norm(const VectorType& x,
+                              const VectorType& b) const;
 
     /// Converts the matrix to a string representation.
     std::string to_string(unsigned int precision = 3,
@@ -233,6 +249,21 @@ namespace pdes
     entries_.reshape({m, n});
     entries_.set(value);
   }
+
+  template<typename Number>
+  std::vector<typename Matrix<Number>::RowEntry>
+  Matrix<Number>::row_entries(const size_t i) const
+  {
+    if (i >= m())
+      throw std::out_of_range("Matrix::row_entries: row index out of bounds");
+
+    std::vector<RowEntry> entries;
+    const Number* val = begin(i);
+    for (size_t j = 0; j < n(); ++j)
+      entries.push_back(RowEntry{j, val[j]});
+    return entries;
+  }
+
 
   template<typename Number>
   void
@@ -344,8 +375,8 @@ namespace pdes
 
   template<typename Number>
   void
-  Matrix<Number>::vmult(const VectorType &x,
-                        VectorType &b,
+  Matrix<Number>::vmult(const VectorType& x,
+                        VectorType& b,
                         const bool add) const
   {
     if (x.size() != n())
@@ -368,7 +399,7 @@ namespace pdes
 
   template<typename Number>
   typename Matrix<Number>::VectorType
-  Matrix<Number>::vmult(const VectorType &x) const
+  Matrix<Number>::vmult(const VectorType& x) const
   {
     Vector dst(m(), Number(0));
     vmult(x, dst);
@@ -377,7 +408,7 @@ namespace pdes
 
   template<typename Number>
   typename Matrix<Number>::VectorType
-  Matrix<Number>::operator*(const VectorType &x) const
+  Matrix<Number>::operator*(const VectorType& x) const
   {
     return vmult(x);
   }
@@ -412,9 +443,9 @@ namespace pdes
 
   template<typename Number>
   void
-  Matrix<Number>::residual(const VectorType &x,
-                           const VectorType &b,
-                           VectorType &r) const
+  Matrix<Number>::residual(const VectorType& x,
+                           const VectorType& b,
+                           VectorType& r) const
   {
     r = Number(0);
 
@@ -433,7 +464,7 @@ namespace pdes
 
   template<typename Number>
   typename Matrix<Number>::VectorType
-  Matrix<Number>::residual(const VectorType &x, const VectorType &b) const
+  Matrix<Number>::residual(const VectorType& x, const VectorType& b) const
   {
     VectorType r(b.size(), Number(0));
     residual(x, b, r);
@@ -443,8 +474,8 @@ namespace pdes
 
   template<typename Number>
   types::real
-  Matrix<Number>::residual_norm(const VectorType &x,
-                                const VectorType &b) const
+  Matrix<Number>::residual_norm(const VectorType& x,
+                                const VectorType& b) const
   {
     Number norm_sqr = 0;
 
@@ -552,14 +583,14 @@ namespace pdes
 
   template<typename Number>
   typename Matrix<Number>::VectorType
-  vmult(const Matrix<Number> &A, const typename Matrix<Number>::VectorType &x)
+  vmult(const Matrix<Number>& A, const typename Matrix<Number>::VectorType& x)
   {
     return A.vmult(x);
   }
 
   template<typename Number>
   typename Matrix<Number>::VectorType
-  operator*(const Matrix<Number> &A, const typename Matrix<Number>::VectorType &x)
+  operator*(const Matrix<Number>& A, const typename Matrix<Number>::VectorType& x)
   {
     return A.vmult(x);
   }

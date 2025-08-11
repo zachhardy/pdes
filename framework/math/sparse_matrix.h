@@ -71,6 +71,9 @@ namespace pdes
     /// Returns true if the matrix is empty (has zero rows or columns).
     bool empty() const noexcept { return m_ == 0 or n_ == 0; }
 
+    /// Returns whether the matrix is square.
+    bool is_square() const noexcept { return m_ == n_; }
+
     /// Reinitializes the sparse matrix with @p m rows and @n columns, clearing existing data.
     void reinit(size_t m, size_t n);
 
@@ -160,29 +163,29 @@ namespace pdes
      * Computes matrix-vector product b = Ax.
      * If add = true, result is added into existing values in @p b.
      */
-    void vmult(const VectorType &x, VectorType &b, bool add = false) const;
+    void vmult(const VectorType& x, VectorType& b, bool add = false) const;
 
     /// Adds a matrix-vector product to the destination via b += Ax.
-    void vmult_add(const VectorType &x, VectorType &b) const { vmult(x, b, true); }
+    void vmult_add(const VectorType& x, VectorType& b) const { vmult(x, b, true); }
 
     /// Returns the matrix-vector product b = Ax.
-    VectorType vmult(const VectorType &x) const;
+    VectorType vmult(const VectorType& x) const;
 
     /// Returns the matrix-vector product b = Ax.
-    VectorType operator*(const VectorType &x) const;
+    VectorType operator*(const VectorType& x) const;
 
     /// Computes the residual r = Ax - b.
-    void residual(const VectorType &x,
-                  const VectorType &b,
-                  VectorType &r) const;
+    void residual(const VectorType& x,
+                  const VectorType& b,
+                  VectorType& r) const;
 
     /// Returns the residual vector r = Ax - b.
-    VectorType residual(const VectorType &x,
-                        const VectorType &b) const;
+    VectorType residual(const VectorType& x,
+                        const VectorType& b) const;
 
     /// Returns the Euclidean norm of the residual r = Ax - b.
-    types::real residual_norm(const VectorType &x,
-                              const VectorType &b) const;
+    types::real residual_norm(const VectorType& x,
+                              const VectorType& b) const;
 
     std::string to_string(unsigned int precision = 3,
                           bool scientific = false,
@@ -351,20 +354,20 @@ namespace pdes
   SparseMatrix<Number>::row_entries(const size_t i) const
   {
     if (i >= m_)
-      throw std::out_of_range("SparseMatrix::row_entries(): row index out of bounds");
+      throw std::out_of_range("SparseMatrix::row_entries: row index out of bounds");
 
-    std::vector<RowEntry> pairs;
+    std::vector<RowEntry> entries;
     if (compressed_)
     {
       for (size_t k = row_ptr_[i]; k < row_ptr_[i + 1]; ++k)
-        pairs.emplace({cols_[k], values_[k]});
+        entries.push_back(RowEntry{cols_[k], values_[k]});
     }
     else
     {
       for (const auto& [col, val]: cache_[i])
-        pairs.emplace({col, val});
+        entries.push_back(RowEntry{col, val});
     }
-    return pairs;
+    return entries;
   }
 
   template<typename Number>
@@ -481,8 +484,8 @@ namespace pdes
 
   template<typename Number>
   void
-  SparseMatrix<Number>::vmult(const VectorType &x,
-                              VectorType &b,
+  SparseMatrix<Number>::vmult(const VectorType& x,
+                              VectorType& b,
                               const bool add) const
   {
     if (not compressed_)
@@ -504,7 +507,7 @@ namespace pdes
 
   template<typename Number>
   typename SparseMatrix<Number>::VectorType
-  SparseMatrix<Number>::vmult(const VectorType &x) const
+  SparseMatrix<Number>::vmult(const VectorType& x) const
   {
     VectorType b(m_, Number(0));
     vmult(x, b);
@@ -513,16 +516,16 @@ namespace pdes
 
   template<typename Number>
   typename SparseMatrix<Number>::VectorType
-  SparseMatrix<Number>::operator*(const VectorType &x) const
+  SparseMatrix<Number>::operator*(const VectorType& x) const
   {
     return vmult(x);
   }
 
   template<typename Number>
   void
-  SparseMatrix<Number>::residual(const VectorType &x,
-                                 const VectorType &b,
-                                 VectorType &r) const
+  SparseMatrix<Number>::residual(const VectorType& x,
+                                 const VectorType& b,
+                                 VectorType& r) const
   {
     if (not compressed_)
       throw std::logic_error("SparseMatrix::vmult(): matrix must be compressed");
@@ -536,15 +539,15 @@ namespace pdes
     {
       Number sum = 0;
       for (size_t k = row_ptr_[i]; k < row_ptr_[i + 1]; ++k)
-        sum += values_[k] * x(k);
-      r(i) = sum - b(i);
+        sum += values_[k] * x(cols_[k]);
+      r(i) = b(i) - sum;
     }
   }
 
   template<typename Number>
   typename SparseMatrix<Number>::VectorType
-  SparseMatrix<Number>::residual(const VectorType &x,
-                                 const VectorType &b) const
+  SparseMatrix<Number>::residual(const VectorType& x,
+                                 const VectorType& b) const
   {
     VectorType r(m_, Number(0));
     residual(x, b, r);
@@ -553,8 +556,8 @@ namespace pdes
 
   template<typename Number>
   types::real
-  SparseMatrix<Number>::residual_norm(const VectorType &x,
-                                      const VectorType &b) const
+  SparseMatrix<Number>::residual_norm(const VectorType& x,
+                                      const VectorType& b) const
   {
     Number norm_sqr = 0;
 
@@ -633,14 +636,14 @@ namespace pdes
 
   template<typename Number>
   typename SparseMatrix<Number>::VectorType
-  vmult(const SparseMatrix<Number> &A, const typename SparseMatrix<Number>::VectorType &x)
+  vmult(const SparseMatrix<Number>& A, const typename SparseMatrix<Number>::VectorType& x)
   {
     return A.vmult(x);
   }
 
   template<typename Number>
   typename SparseMatrix<Number>::VectorType
-  operator*(const SparseMatrix<Number> &A, const typename SparseMatrix<Number>::VectorType &x)
+  operator*(const SparseMatrix<Number>& A, const typename SparseMatrix<Number>::VectorType& x)
   {
     return A.vmult(x);
   }
