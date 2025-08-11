@@ -11,10 +11,13 @@ namespace pdes
    * It is used as a default when no preconditioning is desired.
    */
   template<typename MatrixType = Matrix<>>
-  class PreconditionIdentity final : public Preconditioner<typename MatrixType::vector_type>
+  class PreconditionIdentity final : public Preconditioner<MatrixType>
   {
   public:
-    using VectorType = typename MatrixType::vector_type;
+    using value_type = typename Preconditioner<MatrixType>::value_type;
+    using VectorType = typename Preconditioner<MatrixType>::VectorType;
+
+    void build(const MatrixType*) override {}
 
     PreconditionIdentity() = default;
     explicit PreconditionIdentity(const MatrixType*) {}

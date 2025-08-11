@@ -14,14 +14,16 @@ namespace pdes
    * @tparam MatrixType Type of matrix to precondition (default: Matrix<>).
    */
   template<typename MatrixType = Matrix<>>
-  class PreconditionSSOR final : public Preconditioner<typename MatrixType::vector_type>
+  class PreconditionSSOR final : public Preconditioner<MatrixType>
   {
   public:
-    using VectorType = typename MatrixType::vector_type;
-    using value_type = typename MatrixType::value_type;
+    using value_type = typename Preconditioner<MatrixType>::value_type;
+    using VectorType = typename Preconditioner<MatrixType>::VectorType;
 
     /// Constructs the preconditioner using matrix A and relaxation factor omega.
-    explicit PreconditionSSOR(const MatrixType* A, value_type omega = 1.3);
+    explicit PreconditionSSOR(value_type omega = 1.3);
+
+    void build(const MatrixType* A) override;
 
     /// Applies the preconditioner: z = Ainv r.
     void vmult(const VectorType& src, VectorType& dst) const override;
@@ -38,14 +40,21 @@ namespace pdes
   /*-------------------- member functions --------------------*/
 
   template<typename MatrixType>
-  PreconditionSSOR<MatrixType>::PreconditionSSOR(const MatrixType* A, const value_type omega)
-    : A_(A),
-      omega_(omega)
+  PreconditionSSOR<MatrixType>::PreconditionSSOR(value_type omega)
+    : omega_(omega)
   {
+    if (omega_ <= 0.0 or omega_ >= 2.0)
+      throw std::invalid_argument(name() + ": SSOR omega must be in (0, 2)");
+  }
+
+
+  template<typename MatrixType>
+  void
+  PreconditionSSOR<MatrixType>::build(const MatrixType* A)
+  {
+    A_ = A;
     if (not A_->is_square())
       throw std::invalid_argument(name() + ": matrix must be square.");
-    if (omega <= 0.0 or omega >= 2.0)
-      throw std::invalid_argument(name() + ": SSOR omega must be in (0, 2)");
     inv_diag_ = internal::extract_inv_diagonal(*A_, name());
   }
 
@@ -65,10 +74,9 @@ namespace pdes
     // Forward solve: (D + \omega L) y = r
     for (size_t i = 0; i < n; ++i)
     {
-      const value_type* row = A_->begin(i);
       value_type sum = 0;
-      for (size_t j = 0; j < i; ++j)
-        sum += row[j] * y(j); // lower triangle only
+      for (const auto& [j, aij]: A_->row_entries(i))
+        sum += aij * y(j); // lower triangle only
 
       y(i) = (src(i) - omega_ * sum) * inv_diag_[i];
     }
@@ -77,9 +85,8 @@ namespace pdes
     for (size_t i = n; i-- > 0;)
     {
       value_type sum = 0;
-      const auto row = A_->begin(i);
-      for (size_t j = i + 1; j < n; ++j)
-        sum += row[j] * dst(j); // upper triangle of transpose(L)
+      for (const auto& [j, aij]: A_->row_entries(i))
+        sum += aij * dst(j); // upper triangle of transpose(L)
 
       const auto rhs = inv_diag_[i] * y(i);
       dst(i) = (rhs - omega_ * sum) * inv_diag_[i];

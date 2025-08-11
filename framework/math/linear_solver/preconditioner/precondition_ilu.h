@@ -13,14 +13,13 @@ namespace pdes
    * @tparam MatrixType Type of matrix to precondition.
    */
   template<typename MatrixType = Matrix<>>
-  class PreconditionILU final : public Preconditioner<typename MatrixType::vector_type>
+  class PreconditionILU final : public Preconditioner<MatrixType>
   {
   public:
-    using VectorType = typename MatrixType::vector_type;
-    using value_type = typename MatrixType::value_type;
+    using value_type = typename Preconditioner<MatrixType>::value_type;
+    using VectorType = typename Preconditioner<MatrixType>::VectorType;
 
-    /// Constructs and factorizes the matrix A.
-    explicit PreconditionILU(const MatrixType* A);
+    void build(const MatrixType* A) override;
 
     /// Applies the preconditioner: solves LU z = r.
     void vmult(const VectorType& src, VectorType& dst) const override;
@@ -36,9 +35,10 @@ namespace pdes
   /*-------------------- member functions --------------------*/
 
   template<typename MatrixType>
-  PreconditionILU<MatrixType>::PreconditionILU(const MatrixType* A)
-    : A_(A)
+  void
+  PreconditionILU<MatrixType>::build(const MatrixType* A)
   {
+    A_ = A;
     if (not A_->is_square())
       throw std::invalid_argument(name() + ": matrix must be square");
 

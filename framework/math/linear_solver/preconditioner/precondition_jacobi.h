@@ -14,17 +14,13 @@ namespace pdes
    * @tparam MatrixType Type of matrix to precondition (default: Matrix<>).
    */
   template<typename MatrixType = Matrix<>>
-  class PreconditionJacobi final : public Preconditioner<typename MatrixType::vector_type>
+  class PreconditionJacobi final : public Preconditioner<MatrixType>
   {
   public:
-    using VectorType = typename MatrixType::vector_type;
-    using value_type = typename MatrixType::value_type;
+    using value_type = typename Preconditioner<MatrixType>::value_type;
+    using VectorType = typename Preconditioner<MatrixType>::VectorType;
 
-    /// Default constructor.
-    PreconditionJacobi() = default;
-
-    /// Constructs the preconditioner and extracts inverse diagonal.
-    explicit PreconditionJacobi(const MatrixType* A);
+    void build(const MatrixType* A) override;
 
     /// Applies the preconditioner: z = Ainv r.
     void vmult(const VectorType& src, VectorType& dst) const override;
@@ -33,16 +29,17 @@ namespace pdes
     std::string name() const override { return "PreconditionJacobi"; }
 
   private:
-    const MatrixType* A_;
+    const MatrixType* A_ = nullptr;
     std::vector<value_type> inv_diag_;
   };
 
   /*-------------------- member functions --------------------*/
 
   template<typename MatrixType>
-  PreconditionJacobi<MatrixType>::PreconditionJacobi(const MatrixType* A)
-    : A_(A)
+  void
+  PreconditionJacobi<MatrixType>::build(const MatrixType* A)
   {
+    A_ = A;
     if (not A_->is_square())
       throw std::invalid_argument(name() + ": matrix must be square.");
     inv_diag_ = internal::extract_inv_diagonal(*A_, name());

@@ -64,7 +64,8 @@ namespace pdes::test
 
     SolverControl control(1000, 1e-10);
     Solver solver(&control);
-    PC M(&A);
+    PC M;
+    M.build(&A);
 
     Vector<> x(b.size(), 0.0);
     auto result = solver.solve(A, b, x, M);
