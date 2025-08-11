@@ -19,6 +19,9 @@ namespace pdes
     void assemble();
     void solve();
 
+    const Vector<>& solution() const { return x_; }
+    Vector<>& solution() { return x_; }
+
   private:
     const DiffusionModel& model_;
     const std::shared_ptr<SpatialDiscretization> discretization_;
