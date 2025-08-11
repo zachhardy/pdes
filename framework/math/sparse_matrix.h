@@ -30,14 +30,14 @@ namespace pdes
   class SparseMatrix
   {
   public:
+    using value_type = Number;
+    using VectorType = Vector<Number>;
+
     struct RowEntry
     {
       size_t col;
       Number value;
     };
-
-    using value_type = Number;
-    using vector_type = Vector<Number>;
 
     /// Default constructor.
     SparseMatrix() = default;
@@ -160,29 +160,29 @@ namespace pdes
      * Computes matrix-vector product b = Ax.
      * If add = true, result is added into existing values in @p b.
      */
-    void vmult(const Vector<Number>& x, Vector<Number>& b, bool add = false) const;
+    void vmult(const VectorType &x, VectorType &b, bool add = false) const;
 
     /// Adds a matrix-vector product to the destination via b += Ax.
-    void vmult_add(const Vector<Number>& x, Vector<Number>& b) const { vmult(x, b, true); }
+    void vmult_add(const VectorType &x, VectorType &b) const { vmult(x, b, true); }
 
     /// Returns the matrix-vector product b = Ax.
-    Vector<Number> vmult(const Vector<Number>& x) const;
+    VectorType vmult(const VectorType &x) const;
 
     /// Returns the matrix-vector product b = Ax.
-    Vector<Number> operator*(const Vector<Number>& x) const;
+    VectorType operator*(const VectorType &x) const;
 
     /// Computes the residual r = Ax - b.
-    void residual(const Vector<Number>& x,
-                  const Vector<Number>& b,
-                  Vector<Number>& r) const;
+    void residual(const VectorType &x,
+                  const VectorType &b,
+                  VectorType &r) const;
 
     /// Returns the residual vector r = Ax - b.
-    Vector<Number> residual(const Vector<Number>& x,
-                            const Vector<Number>& b) const;
+    VectorType residual(const VectorType &x,
+                        const VectorType &b) const;
 
     /// Returns the Euclidean norm of the residual r = Ax - b.
-    types::real residual_norm(const Vector<Number>& x,
-                              const Vector<Number>& b) const;
+    types::real residual_norm(const VectorType &x,
+                              const VectorType &b) const;
 
     std::string to_string(unsigned int precision = 3,
                           bool scientific = false,
@@ -481,8 +481,8 @@ namespace pdes
 
   template<typename Number>
   void
-  SparseMatrix<Number>::vmult(const Vector<Number>& x,
-                              Vector<Number>& b,
+  SparseMatrix<Number>::vmult(const VectorType &x,
+                              VectorType &b,
                               const bool add) const
   {
     if (not compressed_)
@@ -503,26 +503,26 @@ namespace pdes
   }
 
   template<typename Number>
-  Vector<Number>
-  SparseMatrix<Number>::vmult(const Vector<Number>& x) const
+  typename SparseMatrix<Number>::VectorType
+  SparseMatrix<Number>::vmult(const VectorType &x) const
   {
-    Vector<Number> b(m_, Number(0));
+    VectorType b(m_, Number(0));
     vmult(x, b);
     return b;
   }
 
   template<typename Number>
-  Vector<Number>
-  SparseMatrix<Number>::operator*(const Vector<Number>& x) const
+  typename SparseMatrix<Number>::VectorType
+  SparseMatrix<Number>::operator*(const VectorType &x) const
   {
     return vmult(x);
   }
 
   template<typename Number>
   void
-  SparseMatrix<Number>::residual(const Vector<Number>& x,
-                                 const Vector<Number>& b,
-                                 Vector<Number>& r) const
+  SparseMatrix<Number>::residual(const VectorType &x,
+                                 const VectorType &b,
+                                 VectorType &r) const
   {
     if (not compressed_)
       throw std::logic_error("SparseMatrix::vmult(): matrix must be compressed");
@@ -542,19 +542,19 @@ namespace pdes
   }
 
   template<typename Number>
-  Vector<Number>
-  SparseMatrix<Number>::residual(const Vector<Number>& x,
-                                 const Vector<Number>& b) const
+  typename SparseMatrix<Number>::VectorType
+  SparseMatrix<Number>::residual(const VectorType &x,
+                                 const VectorType &b) const
   {
-    Vector<Number> r(m_, Number(0));
+    VectorType r(m_, Number(0));
     residual(x, b, r);
     return r;
   }
 
   template<typename Number>
   types::real
-  SparseMatrix<Number>::residual_norm(const Vector<Number>& x,
-                                      const Vector<Number>& b) const
+  SparseMatrix<Number>::residual_norm(const VectorType &x,
+                                      const VectorType &b) const
   {
     Number norm_sqr = 0;
 
@@ -632,15 +632,15 @@ namespace pdes
   }
 
   template<typename Number>
-  Vector<Number>
-  vmult(const SparseMatrix<Number>& A, const Vector<Number>& x)
+  typename SparseMatrix<Number>::VectorType
+  vmult(const SparseMatrix<Number> &A, const typename SparseMatrix<Number>::VectorType &x)
   {
     return A.vmult(x);
   }
 
   template<typename Number>
-  Vector<Number>
-  operator*(const SparseMatrix<Number>& A, const Vector<Number>& x)
+  typename SparseMatrix<Number>::VectorType
+  operator*(const SparseMatrix<Number> &A, const typename SparseMatrix<Number>::VectorType &x)
   {
     return A.vmult(x);
   }

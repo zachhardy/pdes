@@ -26,7 +26,8 @@ namespace pdes
   {
   public:
     using value_type = typename NDArray<2, Number>::value_type;
-    using vector_type = Vector<Number>;
+    using VectorType = Vector<Number>;
+
 
     /// Constructs an empty matrix.
     Matrix() = default;
@@ -176,16 +177,16 @@ namespace pdes
      * Computes matrix-vector product b = Ax.
      * If add = true, result is added into existing values in @p b.
      */
-    void vmult(const Vector<Number>& x, Vector<Number>& b, bool add = false) const;
+    void vmult(const VectorType &x, VectorType &b, bool add = false) const;
 
     /// Adds a matrix-vector product to the destination via b += Ax.
-    void vmult_add(const Vector<Number>& x, Vector<Number>& b) const { vmult(x, b, true); }
+    void vmult_add(const VectorType &x, VectorType &b) const { vmult(x, b, true); }
 
     /// Returns the matrix-vector product b = Ax.
-    Vector<Number> vmult(const Vector<Number>& x) const;
+    VectorType vmult(const VectorType &x) const;
 
     /// Returns the matrix-vector product b = Ax.
-    Vector<Number> operator*(const Vector<Number>& x) const;
+    VectorType operator*(const VectorType &x) const;
 
     /// Returns the matrix-matrix product C = AB.
     Matrix mmult(const Matrix& B) const;
@@ -194,17 +195,17 @@ namespace pdes
     Matrix operator*(const Matrix& B) const;
 
     /// Computes the residual r = b - Ax.
-    void residual(const Vector<Number>& x,
-                  const Vector<Number>& b,
-                  Vector<Number>& r) const;
+    void residual(const VectorType &x,
+                  const VectorType &b,
+                  VectorType &r) const;
 
     /// Returns the residual vector r = b - Ax.
-    Vector<Number> residual(const Vector<Number>& x,
-                            const Vector<Number>& b) const;
+    VectorType residual(const VectorType &x,
+                        const VectorType &b) const;
 
     /// Returns the Euclidean norm of the residual r = b - Ax.
-    types::real residual_norm(const Vector<Number>& x,
-                              const Vector<Number>& b) const;
+    types::real residual_norm(const VectorType &x,
+                              const VectorType &b) const;
 
     /// Converts the matrix to a string representation.
     std::string to_string(unsigned int precision = 3,
@@ -343,8 +344,8 @@ namespace pdes
 
   template<typename Number>
   void
-  Matrix<Number>::vmult(const Vector<Number>& x,
-                        Vector<Number>& b,
+  Matrix<Number>::vmult(const VectorType &x,
+                        VectorType &b,
                         const bool add) const
   {
     if (x.size() != n())
@@ -366,8 +367,8 @@ namespace pdes
   }
 
   template<typename Number>
-  Vector<Number>
-  Matrix<Number>::vmult(const Vector<Number>& x) const
+  typename Matrix<Number>::VectorType
+  Matrix<Number>::vmult(const VectorType &x) const
   {
     Vector dst(m(), Number(0));
     vmult(x, dst);
@@ -375,8 +376,8 @@ namespace pdes
   }
 
   template<typename Number>
-  Vector<Number>
-  Matrix<Number>::operator*(const Vector<Number>& x) const
+  typename Matrix<Number>::VectorType
+  Matrix<Number>::operator*(const VectorType &x) const
   {
     return vmult(x);
   }
@@ -411,9 +412,9 @@ namespace pdes
 
   template<typename Number>
   void
-  Matrix<Number>::residual(const Vector<Number>& x,
-                           const Vector<Number>& b,
-                           Vector<Number>& r) const
+  Matrix<Number>::residual(const VectorType &x,
+                           const VectorType &b,
+                           VectorType &r) const
   {
     r = Number(0);
 
@@ -431,10 +432,10 @@ namespace pdes
   }
 
   template<typename Number>
-  Vector<Number>
-  Matrix<Number>::residual(const Vector<Number>& x, const Vector<Number>& b) const
+  typename Matrix<Number>::VectorType
+  Matrix<Number>::residual(const VectorType &x, const VectorType &b) const
   {
-    Vector<Number> r(b.size(), Number(0));
+    VectorType r(b.size(), Number(0));
     residual(x, b, r);
     return r;
   }
@@ -442,8 +443,8 @@ namespace pdes
 
   template<typename Number>
   types::real
-  Matrix<Number>::residual_norm(const Vector<Number>& x,
-                                const Vector<Number>& b) const
+  Matrix<Number>::residual_norm(const VectorType &x,
+                                const VectorType &b) const
   {
     Number norm_sqr = 0;
 
@@ -550,15 +551,15 @@ namespace pdes
   }
 
   template<typename Number>
-  Vector<Number>
-  vmult(const Matrix<Number>& A, const Vector<Number>& x)
+  typename Matrix<Number>::VectorType
+  vmult(const Matrix<Number> &A, const typename Matrix<Number>::VectorType &x)
   {
     return A.vmult(x);
   }
 
   template<typename Number>
-  Vector<Number>
-  operator*(const Matrix<Number>& A, const Vector<Number>& x)
+  typename Matrix<Number>::VectorType
+  operator*(const Matrix<Number> &A, const typename Matrix<Number>::VectorType &x)
   {
     return A.vmult(x);
   }
