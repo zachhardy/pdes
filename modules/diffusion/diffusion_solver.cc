@@ -18,7 +18,6 @@ namespace pdes
     x_.reinit(n);
 
     assemble();
-    preconditioner_->build(&A_);
   }
 
   void
@@ -85,6 +84,10 @@ namespace pdes
       } // for cell
     } // if finite volume
     A_.compress();
+
+    // The system matrix has changed; rebuild the preconditioner
+    // before any subsequent solves.
+    preconditioner_->build(&A_);
   }
 
   void
